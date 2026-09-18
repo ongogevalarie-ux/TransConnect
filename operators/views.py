@@ -1,3 +1,7 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+from .models import Operator
+from .serializers import OperatorSerializer
 
-# Create your views here.
+class OperatorViewSet(viewsets.ModelViewSet):
+    queryset = Operator.objects.all()
+    serializer_class = OperatorSerializer

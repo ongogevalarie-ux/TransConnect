@@ -1,3 +1,8 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+from .models import Fare
+from .serializers import FareSerializer
 
-# Create your views here.
+
+class FareViewSet(viewsets.ModelViewSet):
+    queryset = Fare.objects.all()
+    serializer_class = FareSerializer
