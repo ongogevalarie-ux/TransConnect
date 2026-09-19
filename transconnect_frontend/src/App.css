@@ -1,38 +1,203 @@
-.App {
-  text-align: center;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f7fa;
+  color: #172033;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
+.navbar {
+  height: 70px;
+  padding: 0 7%;
+  background: #071a3d;
+  color: white;
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.hero {
+  background: #0b2a5b;
+  color: white;
+  padding: 80px 7%;
+}
+
+.hero-content {
+  max-width: 1100px;
+  margin: auto;
+}
+
+.hero h1 {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.hero p {
+  font-size: 18px;
+  margin-bottom: 35px;
+  max-width: 650px;
+}
+
+.search-form {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+
+  display: flex;
+  align-items: end;
+  gap: 20px;
+
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.input-group {
+  flex: 1;
+}
+
+.input-group label {
+  display: block;
+  color: #172033;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #d5d9e2;
+  border-radius: 7px;
+  font-size: 16px;
+}
+
+.search-form button {
+  padding: 14px 25px;
+  border: none;
+  border-radius: 7px;
+  background: #d71920;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.search-form button:hover {
+  background: #b9141a;
+}
+
+.error {
+  margin-top: 20px;
+  color: #ffcccc;
+}
+
+.results-section {
+  padding: 60px 7%;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.results-section h2 {
+  margin-bottom: 25px;
+  font-size: 30px;
+}
+
+.empty-message {
+  color: #667085;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+.transport-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.transport-card h3 {
+  margin-bottom: 18px;
+  color: #071a3d;
+}
+
+.transport-card p {
+  margin-bottom: 10px;
+  color: #4b5563;
+}
+
+.book-button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 13px;
+
+  border: none;
+  border-radius: 7px;
+
+  background: #d71920;
+  color: white;
+
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.book-button:hover {
+  background: #b9141a;
+}
+
+footer {
+  padding: 25px;
+  text-align: center;
+  background: #071a3d;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 5%;
   }
-  to {
-    transform: rotate(360deg);
+
+  .nav-links {
+    gap: 12px;
+  }
+
+  .hero {
+    padding: 60px 5%;
+  }
+
+  .hero h1 {
+    font-size: 36px;
+  }
+
+  .search-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .results-section {
+    padding: 40px 5%;
   }
 }
