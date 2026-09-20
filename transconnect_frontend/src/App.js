@@ -12,7 +12,7 @@ function App() {
   const handleSearch = async (e) => {
     e.preventDefault();
 
-    if (!origin || !destination) {
+    if (!origin.trim() || !destination.trim()) {
       setError("Please enter both origin and destination.");
       return;
     }
@@ -26,45 +26,60 @@ function App() {
         "http://127.0.0.1:8000/api/search/",
         {
           params: {
-            origin: origin,
-            destination: destination,
+            origin: origin.trim(),
+            destination: destination.trim(),
           },
         }
       );
 
       setResults(response.data);
+
+      if (response.data.length === 0) {
+        setError("No transport options found for this route.");
+      }
     } catch (err) {
       console.error(err);
-      setError("Unable to search transport routes.");
+      setError("Unable to connect to the transport search service.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleBooking = (url) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="app">
+
+      {/* NAVBAR */}
       <nav className="navbar">
         <div className="logo">Trans-Connect</div>
 
         <div className="nav-links">
           <a href="/">Home</a>
-          <a href="/">Routes</a>
-          <a href="/">Operators</a>
+          <a href="#results">Routes</a>
+          <a href="#results">Operators</a>
         </div>
       </nav>
 
+      {/* HERO */}
       <section className="hero">
         <div className="hero-content">
+
           <h1>Find Your Journey</h1>
 
           <p>
-            Compare transport routes, fares and schedules from different
+            Search routes, fares and schedules from multiple transport
             operators in one place.
           </p>
 
+          {/* SEARCH FORM */}
           <form className="search-form" onSubmit={handleSearch}>
+
             <div className="input-group">
               <label>From</label>
+
               <input
                 type="text"
                 placeholder="e.g. Nairobi"
@@ -75,6 +90,7 @@ function App() {
 
             <div className="input-group">
               <label>To</label>
+
               <input
                 type="text"
                 placeholder="e.g. Kisumu"
@@ -83,61 +99,102 @@ function App() {
               />
             </div>
 
-            <button type="submit">
+            <button type="submit" disabled={loading}>
               {loading ? "Searching..." : "Search"}
             </button>
+
           </form>
 
           {error && <p className="error">{error}</p>}
+
         </div>
       </section>
 
-      <section className="results-section">
-        <h2>Transport Results</h2>
+      {/* RESULTS */}
+      <section className="results-section" id="results">
 
-        {results.length === 0 && !loading && !error && (
+        <div className="results-header">
+          <h2>Available Transport</h2>
+
+          {results.length > 0 && (
+            <span className="result-count">
+              {results.length} options found
+            </span>
+          )}
+        </div>
+
+        {!loading && results.length === 0 && !error && (
           <p className="empty-message">
-            Enter your journey details to find available transport.
+            Search for a route to see available transport options.
+          </p>
+        )}
+
+        {loading && (
+          <p className="empty-message">
+            Searching available transport...
           </p>
         )}
 
         <div className="results-grid">
+
           {results.map((result, index) => (
+
             <div className="transport-card" key={index}>
-              <h3>{result.operator}</h3>
 
-              <p>
-                <strong>Route:</strong> {result.route}
-              </p>
+              <div className="card-header">
+                <h3>{result.operator}</h3>
+                <span className="available">Available</span>
+              </div>
 
-              <p>
-                <strong>Fare:</strong> KSh {result.fare}
-              </p>
+              <div className="route">
+                <strong>{result.route}</strong>
+              </div>
 
-              <p>
-                <strong>Departure:</strong> {result.departure_time}
-              </p>
+              <div className="transport-details">
 
-              <p>
-                <strong>Arrival:</strong> {result.arrival_time}
-              </p>
+                <div>
+                  <span>Fare</span>
+                  <strong>KSh {result.fare}</strong>
+                </div>
+
+                <div>
+                  <span>Departure</span>
+                  <strong>{result.departure_time}</strong>
+                </div>
+
+                <div>
+                  <span>Arrival</span>
+                  <strong>{result.arrival_time}</strong>
+                </div>
+
+              </div>
 
               <button
                 className="book-button"
-                onClick={() => {
-                  window.location.href = result.booking_url;
-                }}
+                onClick={() => handleBooking(result.booking_url)}
               >
                 Book Now
               </button>
+
             </div>
+
           ))}
+
         </div>
+
       </section>
 
+      {/* FOOTER */}
       <footer>
-        <p>© 2026 Trans-Connect. Integrated Public Transport Information.</p>
+        <p>
+          © 2026 Trans-Connect
+        </p>
+
+        <span>
+          Integrated Public Transport Information System
+        </span>
       </footer>
+
     </div>
   );
 }
