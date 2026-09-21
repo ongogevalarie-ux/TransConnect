@@ -37,6 +37,11 @@ body {
   gap: 30px;
 }
 
+.logo a {
+  color: white;
+  text-decoration: none;
+}
+
 .nav-links a {
   color: white;
   text-decoration: none;
@@ -343,4 +348,99 @@ footer span {
   .transport-details {
     grid-template-columns: 1fr;
   }
+}
+/* AUTHENTICATION */
+
+.auth-container {
+  min-height: 70vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 50px 20px;
+
+  background: #f5f7fa;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+
+  background: white;
+
+  padding: 35px;
+
+  border-radius: 12px;
+
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.auth-card h2 {
+  color: #071a3d;
+
+  margin-bottom: 8px;
+}
+
+.auth-card > p {
+  color: #667085;
+
+  margin-bottom: 25px;
+}
+
+.auth-card label {
+  display: block;
+
+  margin-top: 15px;
+  margin-bottom: 7px;
+
+  font-weight: bold;
+}
+
+.auth-card input {
+  width: 100%;
+
+  padding: 13px;
+
+  border: 1px solid #d5d9e2;
+
+  border-radius: 7px;
+
+  font-size: 15px;
+}
+
+.auth-card button {
+  width: 100%;
+
+  margin-top: 25px;
+
+  padding: 13px;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: #d71920;
+
+  color: white;
+
+  font-weight: bold;
+
+  cursor: pointer;
+}
+
+.auth-card button:hover {
+  background: #b9141a;
+}
+
+.success {
+  color: #16803c !important;
+
+  margin-top: 15px;
+}
+
+.auth-error {
+  color: #d71920 !important;
+
+  margin-top: 15px;
 }

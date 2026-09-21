@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Link, Routes, Route } from "react-router-dom";
+import Register from "./Register";
+import Login from "./Login";
 import "./App.css";
 
-function App() {
+function Home() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [results, setResults] = useState([]);
@@ -50,33 +53,21 @@ function App() {
   };
 
   return (
-    <div className="app">
-
-      {/* NAVBAR */}
-      <nav className="navbar">
-        <div className="logo">Trans-Connect</div>
-
-        <div className="nav-links">
-          <a href="/">Home</a>
-          <a href="#results">Routes</a>
-          <a href="#results">Operators</a>
-        </div>
-      </nav>
-
-      {/* HERO */}
+    <>
       <section className="hero">
         <div className="hero-content">
 
           <h1>Find Your Journey</h1>
 
           <p>
-            Search routes, fares and schedules from multiple transport
-            operators in one place.
+            Search routes, fares and schedules from multiple
+            transport operators in one place.
           </p>
 
-          {/* SEARCH FORM */}
-          <form className="search-form" onSubmit={handleSearch}>
-
+          <form
+            className="search-form"
+            onSubmit={handleSearch}
+          >
             <div className="input-group">
               <label>From</label>
 
@@ -84,7 +75,9 @@ function App() {
                 type="text"
                 placeholder="e.g. Nairobi"
                 value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
+                onChange={(e) =>
+                  setOrigin(e.target.value)
+                }
               />
             </div>
 
@@ -95,23 +88,25 @@ function App() {
                 type="text"
                 placeholder="e.g. Kisumu"
                 value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+                onChange={(e) =>
+                  setDestination(e.target.value)
+                }
               />
             </div>
 
             <button type="submit" disabled={loading}>
               {loading ? "Searching..." : "Search"}
             </button>
-
           </form>
 
-          {error && <p className="error">{error}</p>}
+          {error && (
+            <p className="error">{error}</p>
+          )}
 
         </div>
       </section>
 
-      {/* RESULTS */}
-      <section className="results-section" id="results">
+      <section className="results-section">
 
         <div className="results-header">
           <h2>Available Transport</h2>
@@ -123,11 +118,14 @@ function App() {
           )}
         </div>
 
-        {!loading && results.length === 0 && !error && (
-          <p className="empty-message">
-            Search for a route to see available transport options.
-          </p>
-        )}
+        {!loading &&
+          results.length === 0 &&
+          !error && (
+            <p className="empty-message">
+              Search for a route to see available
+              transport options.
+            </p>
+          )}
 
         {loading && (
           <p className="empty-message">
@@ -138,12 +136,17 @@ function App() {
         <div className="results-grid">
 
           {results.map((result, index) => (
-
-            <div className="transport-card" key={index}>
+            <div
+              className="transport-card"
+              key={index}
+            >
 
               <div className="card-header">
                 <h3>{result.operator}</h3>
-                <span className="available">Available</span>
+
+                <span className="available">
+                  Available
+                </span>
               </div>
 
               <div className="route">
@@ -154,41 +157,89 @@ function App() {
 
                 <div>
                   <span>Fare</span>
-                  <strong>KSh {result.fare}</strong>
+                  <strong>
+                    KSh {result.fare}
+                  </strong>
                 </div>
 
                 <div>
                   <span>Departure</span>
-                  <strong>{result.departure_time}</strong>
+                  <strong>
+                    {result.departure_time}
+                  </strong>
                 </div>
 
                 <div>
                   <span>Arrival</span>
-                  <strong>{result.arrival_time}</strong>
+                  <strong>
+                    {result.arrival_time}
+                  </strong>
                 </div>
 
               </div>
 
               <button
                 className="book-button"
-                onClick={() => handleBooking(result.booking_url)}
+                onClick={() =>
+                  handleBooking(
+                    result.booking_url
+                  )
+                }
               >
                 Book Now
               </button>
 
             </div>
-
           ))}
 
         </div>
-
       </section>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <div className="app">
+
+      {/* NAVIGATION */}
+      <nav className="navbar">
+
+        <div className="logo">
+          <Link to="/">Trans-Connect</Link>
+        </div>
+
+        <div className="nav-links">
+          <Link to="/">Home</Link>
+          <Link to="/register">Register</Link>
+          <Link to="/login">Login</Link>
+        </div>
+
+      </nav>
+
+      {/* PAGES */}
+      <Routes>
+
+        <Route
+          path="/"
+          element={<Home />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+      </Routes>
 
       {/* FOOTER */}
       <footer>
-        <p>
-          © 2026 Trans-Connect
-        </p>
+        <p>© 2026 Trans-Connect</p>
 
         <span>
           Integrated Public Transport Information System
