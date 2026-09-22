@@ -199,10 +199,26 @@ function Home() {
 }
 
 function App() {
+  const [user, setUser] = useState(
+    localStorage.getItem("username")
+  );
+
+  const handleLogin = (username) => {
+    localStorage.setItem("username", username);
+    setUser(username);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("username");
+
+    setUser(null);
+  };
+
   return (
     <div className="app">
 
-      {/* NAVIGATION */}
       <nav className="navbar">
 
         <div className="logo">
@@ -210,14 +226,38 @@ function App() {
         </div>
 
         <div className="nav-links">
+
           <Link to="/">Home</Link>
-          <Link to="/register">Register</Link>
-          <Link to="/login">Login</Link>
+
+          {user ? (
+            <>
+              <span className="welcome">
+                Welcome, {user}
+              </span>
+
+              <button
+                className="logout-button"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/register">
+                Register
+              </Link>
+
+              <Link to="/login">
+                Login
+              </Link>
+            </>
+          )}
+
         </div>
 
       </nav>
 
-      {/* PAGES */}
       <Routes>
 
         <Route
@@ -232,12 +272,13 @@ function App() {
 
         <Route
           path="/login"
-          element={<Login />}
+          element={
+            <Login onLogin={handleLogin} />
+          }
         />
 
       </Routes>
 
-      {/* FOOTER */}
       <footer>
         <p>© 2026 Trans-Connect</p>
 

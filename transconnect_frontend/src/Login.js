@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
 
-function Login() {
+function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,14 +33,16 @@ function Login() {
         response.data.refresh
       );
 
-      alert("Login successful!");
+      // Tell App that the user is logged in
+      onLogin(username);
+
+      // Go back to Home
+      navigate("/");
 
     } catch (err) {
       console.error(err);
 
-      setError(
-        "Invalid username or password."
-      );
+      setError("Invalid username or password.");
     }
   };
 
@@ -88,6 +92,13 @@ function Login() {
             {error}
           </p>
         )}
+
+        <p className="auth-link">
+          Don't have an account?{" "}
+          <Link to="/register">
+            Register
+          </Link>
+        </p>
 
       </div>
 

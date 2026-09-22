@@ -444,3 +444,42 @@ footer span {
 
   margin-top: 15px;
 }
+.welcome {
+  color: white;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.logout-button {
+  background: #d71920;
+  color: white;
+
+  border: none;
+  border-radius: 6px;
+
+  padding: 8px 14px;
+
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #b9141a;
+}
+
+.auth-link {
+  text-align: center;
+  margin-top: 20px;
+  color: #667085;
+}
+
+.auth-link a {
+  color: #071a3d;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.auth-link a:hover {
+  text-decoration: underline;
+}
