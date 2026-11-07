@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link, Routes, Route } from "react-router-dom";
+import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import Register from "./Register";
 import Login from "./Login";
+import Booking from "./Booking";
+import BookingSuccess from "./BookingSuccess";
 import "./App.css";
 
 function Home() {
@@ -11,18 +13,23 @@ function Home() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSearch = async (e) => {
     e.preventDefault();
+
+    setHasSearched(true);
 
     if (!origin.trim() || !destination.trim()) {
       setError("Please enter both origin and destination.");
       return;
     }
 
+    
     setLoading(true);
     setError("");
     setResults([]);
+    
 
     try {
       const response = await axios.get(
@@ -48,9 +55,35 @@ function Home() {
     }
   };
 
-  const handleBooking = (url) => {
-    window.open(url, "_blank", "noopener,noreferrer");
+  const handleBooking = (journey) => {
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    navigate("/login");
+    return;
+  }
+
+  navigate(`/book/${journey.schedule_id}`, {
+    state: { journey },
+  });
+};
+  const [hasSearched, setHasSearched] = useState(false);
+
+useEffect(() => {
+  const fetchFeaturedRoutes = async () => {
+    try {
+      const response = await axios.get(
+        "http://127.0.0.1:8000/api/search/featured/"
+      );
+
+      setResults(response.data);
+    } catch (err) {
+      console.error("Unable to load featured routes:", err);
+    }
   };
+
+  fetchFeaturedRoutes();
+}, []);
 
   return (
     <>
@@ -109,11 +142,9 @@ function Home() {
       <section className="results-section">
 
         <div className="results-header">
-          <h2>Available Transport</h2>
-
+          <h2>{hasSearched ? "Search Results" : "Popular Routes"}</h2>
           {results.length > 0 && (
             <span className="result-count">
-              {results.length} options found
             </span>
           )}
         </div>
@@ -122,8 +153,10 @@ function Home() {
           results.length === 0 &&
           !error && (
             <p className="empty-message">
-              Search for a route to see available
-              transport options.
+              {hasSearched
+                ? "No transport options found for this route."
+                : "Explore available routes from different transport companies."
+              }
             </p>
           )}
 
@@ -180,11 +213,7 @@ function Home() {
 
               <button
                 className="book-button"
-                onClick={() =>
-                  handleBooking(
-                    result.booking_url
-                  )
-                }
+                onClick={() => handleBooking(result)}
               >
                 Book Now
               </button>
@@ -276,6 +305,8 @@ function App() {
             <Login onLogin={handleLogin} />
           }
         />
+        <Route path="/book/:scheduleId" element={<Booking />} />
+        <Route path="/booking-success" element={<BookingSuccess />} />
 
       </Routes>
 

@@ -483,3 +483,25 @@ footer span {
 .auth-link a:hover {
   text-decoration: underline;
 }
+.booking-card {
+  max-width: 520px;
+  width: 100%;
+}
+
+.booking-summary {
+  background: #f4f6fa;
+  border-left: 4px solid #071a3d;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.booking-summary h3 {
+  color: #071a3d;
+  margin-bottom: 10px;
+}
+
+.booking-summary p {
+  margin: 8px 0;
+  color: #344054;
+}
