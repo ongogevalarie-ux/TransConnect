@@ -5,6 +5,7 @@ import Register from "./Register";
 import Login from "./Login";
 import Booking from "./Booking";
 import BookingSuccess from "./BookingSuccess";
+import AdminDashboard from "./AdminDashboard";
 import "./App.css";
 
 function Home() {
@@ -307,7 +308,7 @@ function App() {
         />
         <Route path="/book/:scheduleId" element={<Booking />} />
         <Route path="/booking-success" element={<BookingSuccess />} />
-
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
 
       <footer>

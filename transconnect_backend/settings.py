@@ -29,7 +29,13 @@ SECRET_KEY = 'django-insecure-&e^r_76q+!+lm1266qmbl38k&xra11=)h95&g5she@#%euym6b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "undertone-docile.ngrok-free.dev",
+
+
+]
 
 
 # Application definition
@@ -54,6 +60,7 @@ INSTALLED_APPS = [
     'schedules',
     'search_engine',
     'bookings',
+    'payments',
 ]
 
 MIDDLEWARE = [
