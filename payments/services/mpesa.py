@@ -128,3 +128,49 @@ def initiate_stk_push(phone_number, amount, account_reference):
     response.raise_for_status()
 
     return response.json()
+
+def query_stk_push(checkout_request_id):
+    shortcode = os.getenv("MPESA_SHORTCODE")
+    passkey = os.getenv("MPESA_PASSKEY")
+
+    if not shortcode or not passkey:
+        raise ValueError("M-Pesa shortcode or passkey is missing.")
+
+    environment = os.getenv("MPESA_ENV", "sandbox")
+    base_url = (
+        "https://sandbox.safaricom.co.ke"
+        if environment == "sandbox"
+        else "https://api.safaricom.co.ke"
+    )
+
+    timestamp = timezone.localtime().strftime("%Y%m%d%H%M%S")
+    password_string = f"{shortcode}{passkey}{timestamp}"
+    password = base64.b64encode(
+        password_string.encode("utf-8")
+    ).decode("utf-8")
+
+    access_token = get_mpesa_access_token()
+
+    url = f"{base_url}/mpesa/stkpushquery/v1/query"
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "BusinessShortCode": shortcode,
+        "Password": password,
+        "Timestamp": timestamp,
+        "CheckoutRequestID": checkout_request_id,
+    }
+
+    response = requests.post(
+        url,
+        json=payload,
+        headers=headers,
+        timeout=30,
+    )
+    response.raise_for_status()
+
+    return response.json()

@@ -61,6 +61,8 @@ class Payment(models.Model):
         blank=True,
         null=True
     )
+    safaricom_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
