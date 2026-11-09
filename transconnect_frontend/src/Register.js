@@ -1,6 +1,7 @@
+
 import React, { useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
+import api from "./services/api";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ function Register() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -24,10 +26,11 @@ function Register() {
 
     setMessage("");
     setError("");
+    setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/auth/register/",
+      const response = await api.post(
+        "/auth/register/",
         formData
       );
 
@@ -38,27 +41,29 @@ function Register() {
         email: "",
         password: "",
       });
-
     } catch (err) {
-      if (err.response && err.response.data.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Registration failed.");
-      }
+      console.error("Registration error:", err.response?.data);
+
+      const data = err.response?.data;
+
+      setError(
+        data?.error ||
+        data?.detail ||
+        "Registration failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="auth-container">
-
       <div className="auth-card">
-
         <h2>Create Account</h2>
 
         <p>Join Trans-Connect</p>
 
         <form onSubmit={handleSubmit}>
-
           <label>Username</label>
 
           <input
@@ -92,31 +97,24 @@ function Register() {
             required
           />
 
-          <button type="submit">
-            Register
+          <button type="submit" disabled={loading}>
+            {loading ? "Creating account..." : "Register"}
           </button>
-
         </form>
 
         {message && (
-          <p className="success">
-            {message}
-          </p>
+          <p className="success">{message}</p>
         )}
 
         {error && (
-          <p className="auth-error">
-            {error}
-          </p>
+          <p className="auth-error">{error}</p>
         )}
-            <p className="auth-link">
-            Already have an account?{" "}
-            <Link to="/login">
-                Login
-            </Link>
-            </p>
-      </div>
 
+        <p className="auth-link">
+          Already have an account?{" "}
+          <Link to="/login">Login</Link>
+        </p>
+      </div>
     </div>
   );
 }

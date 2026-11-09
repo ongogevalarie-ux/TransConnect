@@ -1,4 +1,3 @@
-
 from django.utils import timezone
 from django.db import transaction
 
@@ -12,7 +11,7 @@ def verify_payment_with_safaricom(payment):
     if payment.safaricom_verified:
         return (
             payment.status == "SUCCESS",
-            "This payment has already been verified."
+            "This payment has already been processed."
         )
 
     result = query_stk_push(payment.checkout_request_id)
@@ -39,12 +38,11 @@ def verify_payment_with_safaricom(payment):
         )
 
         if locked.safaricom_verified:
-            return locked.status == "SUCCESS", (
-                "This payment has already been verified."
+            return (
+                locked.status == "SUCCESS",
+                "This payment has already been processed."
             )
 
-        # A successful query alone is insufficient:
-        # require a matching callback and receipt.
         if result_code == "0":
             if (
                 str(locked.result_code) == "0"
@@ -53,11 +51,20 @@ def verify_payment_with_safaricom(payment):
                 locked.status = "SUCCESS"
                 locked.safaricom_verified = True
                 locked.verified_at = timezone.now()
+                locked.paid_at = timezone.now()
                 locked.result_description = result.get(
                     "ResultDesc",
                     "Payment verified by Safaricom."
                 )
-                locked.save()
+
+                locked.save(update_fields=[
+                    "status",
+                    "safaricom_verified",
+                    "verified_at",
+                    "paid_at",
+                    "result_description",
+                    "updated_at",
+                ])
 
                 return True, "Payment successfully verified."
 
@@ -66,8 +73,6 @@ def verify_payment_with_safaricom(payment):
                 "receipt details are not available. Payment remains pending."
             )
 
-        # Only mark failure when the callback also confirms
-        # the same result code.
         if (
             locked.result_code is not None
             and str(locked.result_code) == result_code
@@ -79,7 +84,14 @@ def verify_payment_with_safaricom(payment):
                 "ResultDesc",
                 "Safaricom confirmed payment failure."
             )
-            locked.save()
+
+            locked.save(update_fields=[
+                "status",
+                "safaricom_verified",
+                "verified_at",
+                "result_description",
+                "updated_at",
+            ])
 
             return False, "Safaricom confirmed that the payment failed."
 

@@ -1,7 +1,6 @@
-
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import api from "./services/api";
 
 function Booking() {
   const { scheduleId } = useParams();
@@ -17,13 +16,57 @@ function Booking() {
     seats_requested: 1,
   });
 
+  const [seats, setSeats] = useState([]);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [loadingSeats, setLoadingSeats] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Load available seats from Django
+  useEffect(() => {
+    const fetchSeats = async () => {
+      try {
+        const response = await api.get(
+          `/bookings/schedules/${scheduleId}/seats/`
+        );
+
+        setSeats(response.data.seats);
+      } catch (err) {
+        setError("Unable to load available seats. Please try again.");
+      } finally {
+        setLoadingSeats(false);
+      }
+    };
+
+    fetchSeats();
+  }, [scheduleId]);
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        name === "seats_requested" ? Number(value) : value,
+    }));
+
+    if (name === "seats_requested") {
+      setSelectedSeats((prev) => prev.slice(0, Number(value)));
+    }
+  };
+
+  // Select or deselect a seat
+  const handleSeatClick = (seatNumber) => {
+    setSelectedSeats((prev) => {
+      if (prev.includes(seatNumber)) {
+        return prev.filter((seat) => seat !== seatNumber);
+      }
+
+      if (prev.length >= formData.seats_requested) {
+        return prev;
+      }
+
+      return [...prev, seatNumber];
     });
   };
 
@@ -38,40 +81,57 @@ function Booking() {
       return;
     }
 
+    if (selectedSeats.length !== formData.seats_requested) {
+      setError(
+        `Please select exactly ${formData.seats_requested} seat(s).`
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/bookings/",
-        {
-          schedule: Number(scheduleId),
-          passenger_name: formData.passenger_name,
-          passenger_email: formData.passenger_email,
-          passenger_phone: formData.passenger_phone,
-          seats_requested: Number(formData.seats_requested),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const bookingResponse = await api.post("/bookings/", {
+        schedule: Number(scheduleId),
+        passenger_name: formData.passenger_name,
+        passenger_email: formData.passenger_email,
+        passenger_phone: formData.passenger_phone,
+        seats_requested: formData.seats_requested,
+        seat_numbers: selectedSeats,
+      });
 
-      navigate("/booking-success", {
-        state: {
-          booking: response.data,
-          journey,
-        },
+      const booking = bookingResponse.data;
+
+      if (booking.status !== "CONFIRMED") {
+        navigate("/booking-success", {
+          state: {
+            booking,
+            journey,
+            paymentMessage:
+              "Your booking request was submitted. Payment will be available shortly.",
+          },
+        });
+        return;
+      }
+
+      navigate(`/pay/${booking.id}`, {
+        state: { booking, journey },
       });
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Booking error:",
+        err.response?.data || err.message
+      );
 
       if (err.response?.status === 401) {
-        setError("Your login session has expired. Please log in again.");
-      } else if (err.response?.data) {
-        setError(JSON.stringify(err.response.data));
+        setError("Your session has expired. Please log in again.");
       } else {
-        setError("Unable to submit your booking. Please try again.");
+        setError(
+          err.response?.data?.seat_numbers?.[0] ||
+          err.response?.data?.error ||
+          JSON.stringify(err.response?.data) ||
+          "Unable to process your booking."
+        );
       }
     } finally {
       setLoading(false);
@@ -83,8 +143,9 @@ function Booking() {
       <div className="auth-container">
         <div className="auth-card">
           <h2>Journey not available</h2>
-          <p>Please return to the homepage and select a journey again.</p>
-          <button onClick={() => navigate("/")}>Back to Home</button>
+          <button onClick={() => navigate("/")}>
+            Back to Home
+          </button>
         </div>
       </div>
     );
@@ -94,7 +155,6 @@ function Booking() {
     <div className="auth-container">
       <div className="auth-card booking-card">
         <h2>Book Your Journey</h2>
-        <p>Enter your passenger details to request a reservation.</p>
 
         <div className="booking-summary">
           <h3>{journey.operator}</h3>
@@ -143,8 +203,68 @@ function Booking() {
             required
           />
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Submitting..." : "Submit Booking Request"}
+          {/* Seat Selection */}
+          <div className="seat-selection">
+            <h3>Select Your Seats</h3>
+
+            <p>
+              Selected: {selectedSeats.length} of{" "}
+              {formData.seats_requested}
+            </p>
+
+            <div className="seat-legend">
+              <span>🟩 Available</span>
+              <span>🟥 Occupied</span>
+              <span>🟦 Selected</span>
+            </div>
+
+            {loadingSeats ? (
+              <p>Loading available seats...</p>
+            ) : (
+              <div className="seat-grid">
+                {seats.map((seat) => {
+                  const selected = selectedSeats.includes(
+                    seat.seat_number
+                  );
+
+                  const occupied = seat.status === "OCCUPIED";
+
+                  return (
+                    <button
+                      key={seat.seat_number}
+                      type="button"
+                      disabled={occupied}
+                      onClick={() =>
+                        handleSeatClick(seat.seat_number)
+                      }
+                      className={`seat-button ${
+                        occupied
+                          ? "occupied"
+                          : selected
+                          ? "selected"
+                          : "available"
+                      }`}
+                    >
+                      {seat.seat_number}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <p>
+              Your seats:{" "}
+              {selectedSeats.length
+                ? selectedSeats.join(", ")
+                : "None selected"}
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || loadingSeats}
+          >
+            {loading ? "Processing..." : "Submit booking"}
           </button>
         </form>
 

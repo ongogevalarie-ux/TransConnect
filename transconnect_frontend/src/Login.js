@@ -1,11 +1,13 @@
+
 import React, { useState } from "react";
-import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import api from "./services/api";
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -13,58 +15,43 @@ function Login({ onLogin }) {
     e.preventDefault();
 
     setError("");
+    setLoading(true);
 
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/auth/login/",
-        {
-          username,
-          password,
-        }
-      );
+      const response = await api.post("/auth/login/", {
+        username,
+        password,
+      });
 
-      localStorage.setItem(
-        "access_token",
-        response.data.access
-      );
+      localStorage.setItem("access_token", response.data.access);
+      localStorage.setItem("refresh_token", response.data.refresh);
 
-      localStorage.setItem(
-        "refresh_token",
-        response.data.refresh
-      );
-
-      // Tell App that the user is logged in
       onLogin(username);
 
-      // Go back to Home
       navigate("/");
-
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err.response?.data || err.message);
 
       setError("Invalid username or password.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="auth-container">
-
       <div className="auth-card">
-
         <h2>Welcome Back</h2>
 
         <p>Login to Trans-Connect</p>
 
         <form onSubmit={handleSubmit}>
-
           <label>Username</label>
 
           <input
             type="text"
             value={username}
-            onChange={(e) =>
-              setUsername(e.target.value)
-            }
+            onChange={(e) => setUsername(e.target.value)}
             placeholder="Enter username"
             required
           />
@@ -74,34 +61,25 @@ function Login({ onLogin }) {
           <input
             type="password"
             value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter password"
             required
           />
 
-          <button type="submit">
-            Login
+          <button type="submit" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </button>
-
         </form>
 
         {error && (
-          <p className="auth-error">
-            {error}
-          </p>
+          <p className="auth-error">{error}</p>
         )}
 
         <p className="auth-link">
           Don't have an account?{" "}
-          <Link to="/register">
-            Register
-          </Link>
+          <Link to="/register">Register</Link>
         </p>
-
       </div>
-
     </div>
   );
 }

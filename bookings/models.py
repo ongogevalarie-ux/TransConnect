@@ -59,3 +59,31 @@ class Booking(models.Model):
 
     def __str__(self):
         return str(self.booking_reference)
+
+class SeatReservation(models.Model):
+    booking = models.ForeignKey(
+        Booking,
+        on_delete=models.CASCADE,
+        related_name='seat_reservations'
+    )
+
+    schedule = models.ForeignKey(
+        Schedule,
+        on_delete=models.CASCADE,
+        related_name='seat_reservations'
+    )
+
+    seat_number = models.CharField(max_length=10)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['schedule', 'seat_number'],
+                name='unique_seat_per_schedule'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.schedule} - {self.seat_number}"

@@ -6,6 +6,7 @@ from .views import (
     BookingDetailView,
     AdminBookingListView,
     AdminBookingDetailView,
+    ScheduleSeatAvailabilityView,
 )
 
 urlpatterns = [
@@ -20,4 +21,9 @@ urlpatterns = [
         AdminBookingDetailView.as_view(),
         name='admin-booking-detail'
     ),
+    path(
+        'schedules/<int:schedule_id>/seats/',
+        ScheduleSeatAvailabilityView.as_view(),
+        name='schedule-seat-availability'
+    )
 ]

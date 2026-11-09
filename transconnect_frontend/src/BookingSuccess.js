@@ -1,11 +1,15 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
+// Shown after a booking request is submitted.
+// Payment and the ticket now live on /pay/:bookingId (PaymentStatus), so this
+// page only confirms the request and points to payment once it is allowed.
 function BookingSuccess() {
   const location = useLocation();
+
   const booking = location.state?.booking;
   const journey = location.state?.journey;
+  const paymentMessage = location.state?.paymentMessage;
 
   if (!booking) {
     return (
@@ -18,20 +22,20 @@ function BookingSuccess() {
     );
   }
 
+  const canPay = booking.status === "CONFIRMED";
+
   return (
     <div className="auth-container">
       <div className="auth-card">
         <h2>Booking Request Submitted!</h2>
 
-        <p>
-          Your booking request has been received by Trans-Connect.
-        </p>
+        <p>Your booking has been received by Trans-Connect.</p>
 
         <div className="booking-summary">
           <p>
-            <strong>Booking Reference:</strong>
+            <strong>Booking Reference:</strong>{" "}
+            {booking.booking_reference || booking.id}
           </p>
-          <p>{booking.booking_reference}</p>
 
           {journey && (
             <>
@@ -41,14 +45,23 @@ function BookingSuccess() {
             </>
           )}
 
-          <p>
-            <strong>Status:</strong> {booking.status}
-          </p>
+          <p><strong>Booking Status:</strong> {booking.status}</p>
         </div>
 
-        <p>
-          Your reservation will be confirmed shortly.
-        </p>
+        {canPay ? (
+          <Link
+            to={`/pay/${booking.id}`}
+            state={{ booking, journey }}
+            className="book-button"
+          >
+            Pay with M-Pesa
+          </Link>
+        ) : (
+          <p>
+            {paymentMessage ||
+              "Payment will be available once the operator confirms your booking."}
+          </p>
+        )}
 
         <Link to="/" className="book-button">
           Return to Homepage
