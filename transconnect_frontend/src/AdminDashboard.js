@@ -1,22 +1,29 @@
 
-import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "./services/api";
 import "./App.css";
-
-const API_URL = "http://127.0.0.1:8000/api/bookings/admin/";
 
 function AdminDashboard() {
   const [bookings, setBookings] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [paymentsError, setPaymentsError] = useState("");
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [selectedBooking, setSelectedBooking] = useState(null);
+
   const navigate = useNavigate();
 
+  // Retrieve administrator bookings.
   const getBookings = useCallback(async () => {
-    const token = localStorage.getItem("access_token");
-
-    if (!token) {
+    if (!localStorage.getItem("access_token")) {
       navigate("/login");
       return;
     }
@@ -25,138 +32,295 @@ function AdminDashboard() {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(API_URL, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get("bookings/admin/");
 
-      // Supports both normal lists and paginated DRF responses.
       const data = response.data;
-      setBookings(Array.isArray(data) ? data : data.results || []);
+
+      setBookings(
+        Array.isArray(data) ? data : data.results || []
+      );
     } catch (err) {
       if (err.response?.status === 401) {
-        setError("Your login session has expired. Please log in again.");
+        setError("Your session has expired. Please log in again.");
       } else if (err.response?.status === 403) {
-        setError("Access denied. This page is only available to administrators.");
+        setError("Access denied. Administrator privileges are required.");
       } else {
-        setError("Unable to load bookings. Please try again.");
+        setError("Unable to retrieve bookings. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   }, [navigate]);
+  // Retrieve administrator payment records.
+const getPayments = useCallback(async () => {
+  if (!localStorage.getItem("access_token")) {
+    navigate("/login");
+    return;
+  }
+
+  try {
+    setPaymentsLoading(true);
+    setPaymentsError("");
+
+    const response = await api.get("payments/admin/");
+
+    const data = response.data;
+
+    setPayments(
+      Array.isArray(data) ? data : data.results || []
+    );
+  } catch (err) {
+    if (err.response?.status === 401) {
+      setPaymentsError("Your session has expired. Please log in again.");
+    } else if (err.response?.status === 403) {
+      setPaymentsError("Administrator privileges are required to view payments.");
+    } else {
+      setPaymentsError("Unable to retrieve payment records. Please try again.");
+    }
+  } finally {
+    setPaymentsLoading(false);
+  }
+}, [navigate]);
 
   useEffect(() => {
     getBookings();
-  }, [getBookings]);
+    getPayments();
+  }, [getBookings, getPayments]);
 
-  const updateBooking = async (bookingId, status) => {
-    const token = localStorage.getItem("access_token");
+  const refreshDashboard = () => {
+  getBookings();
+  getPayments();
+};
+  // Booking statistics.
+  const statistics = useMemo(() => ({
+    total: bookings.length,
+    pending: bookings.filter(b => b.status === "PENDING").length,
+    confirmed: bookings.filter(b => b.status === "CONFIRMED").length,
+    rejected: bookings.filter(b => b.status === "REJECTED").length,
+  }), [bookings]);
 
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+  // Search and filter.
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(booking => {
+      const query = search.toLowerCase();
 
-    const message =
-      status === "CONFIRMED"
-        ? "Confirm this booking? Only proceed if the operator has confirmed it."
-        : "Reject this booking?";
+      const matchesSearch = [
+        booking.passenger_name,
+        booking.passenger_email,
+        booking.passenger_phone,
+        booking.booking_reference,
+        booking.operator,
+        booking.route,
+      ].some(value =>
+        String(value || "").toLowerCase().includes(query)
+      );
 
-    if (!window.confirm(message)) return;
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        booking.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [bookings, search, statusFilter]);
+
+  // Payment statistics.
+const paymentStatistics = useMemo(() => ({
+  total: payments.length,
+  successful: payments.filter(p => p.status === "SUCCESS").length,
+  pending: payments.filter(p => p.status === "PENDING").length,
+  verified: payments.filter(p => p.safaricom_verified === true).length,
+}), [payments]);
+
+// Search and filter payments.
+const filteredPayments = useMemo(() => {
+  return payments.filter(payment => {
+    const query = paymentSearch.toLowerCase();
+
+    const matchesSearch = [
+      payment.payment_reference,
+      payment.passenger,
+      payment.booking_reference,
+      payment.mpesa_receipt_number,
+    ].some(value =>
+      String(value || "").toLowerCase().includes(query)
+    );
+
+    const matchesStatus =
+      paymentStatusFilter === "ALL" ||
+      payment.status === paymentStatusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+}, [payments, paymentSearch, paymentStatusFilter]);
+  // Confirm or reject booking.
+  const updateBooking = async (bookingId, newStatus) => {
+    const confirmation =
+      newStatus === "CONFIRMED"
+        ? "Confirm this booking? Ensure the operator has approved it."
+        : "Reject this booking? Its reserved seats will be released.";
+
+    if (!window.confirm(confirmation)) return;
 
     try {
       setUpdatingId(bookingId);
       setError("");
 
-      await axios.patch(
-        `${API_URL}${bookingId}/`,
-        { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      await api.patch(
+        `bookings/admin/${bookingId}/`,
+        { status: newStatus }
       );
 
+      setSelectedBooking(null);
       await getBookings();
     } catch (err) {
       setError(
         err.response?.data?.detail ||
-          "Unable to update this booking. Please try again."
+        "Unable to update booking. Please try again."
       );
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const pending = bookings.filter((b) => b.status === "PENDING").length;
-  const confirmed = bookings.filter((b) => b.status === "CONFIRMED").length;
-  const rejected = bookings.filter((b) => b.status === "REJECTED").length;
+  const formatDate = value => {
+    if (!value) return "Not available";
 
-  const getStatusClass = (status) => {
-    return `booking-status ${status.toLowerCase()}`;
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleString("en-KE", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   };
 
-  if (loading) {
-    return <div className="admin-page">Loading bookings...</div>;
+  const statusClass = status =>
+    `tc-admin-status ${String(status || "").toLowerCase()}`;
+
+  if (loading && bookings.length === 0) {
+    return (
+      <div className="tc-admin-loading">
+        <div className="tc-admin-spinner"></div>
+        <h2>Loading administrator dashboard</h2>
+        <p>Retrieving booking information...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="admin-page">
-      <div className="admin-header">
+    <div className="tc-admin-page">
+
+      {/* Header */}
+      <header className="tc-admin-header">
         <div>
-          <p className="admin-eyebrow">TRANS-CONNECT</p>
-          <h1>Admin Dashboard</h1>
-          <p>Booking Management Dashboard</p>
+          <span className="tc-admin-eyebrow">TRANS-CONNECT</span>
+          <h1>Administrator Dashboard</h1>
+          <p>Manage bookings and monitor platform activity.</p>
         </div>
 
-        <button className="refresh-button" onClick={getBookings}>
-          Refresh
+        <button
+          className="tc-admin-refresh"
+          onClick={refreshDashboard}
+          disabled={loading}
+        >
+          {loading ? "Refreshing..." : "↻ Refresh"}
         </button>
-      </div>
+      </header>
 
-      {error && <div className="admin-error">{error}</div>}
+      {error && (
+        <div className="tc-admin-error">
+          {error}
+          {error.includes("log in") && (
+            <button onClick={() => navigate("/login")}>
+              Log in
+            </button>
+          )}
+        </div>
+      )}
 
-      <div className="admin-stats">
-        <div className="admin-stat-card">
-          <span>Total Bookings</span>
-          <strong>{bookings.length}</strong>
+      {/* Statistics */}
+      <section className="tc-admin-stats">
+
+        <div className="tc-admin-stat-card">
+          <span>Total bookings</span>
+          <strong>{statistics.total}</strong>
+          <small>Bookings retrieved</small>
         </div>
 
-        <div className="admin-stat-card">
-          <span>Pending</span>
-          <strong>{pending}</strong>
+        <div className="tc-admin-stat-card pending-card">
+          <span>Pending bookings</span>
+          <strong>{statistics.pending}</strong>
+          <small>Awaiting review</small>
         </div>
 
-        <div className="admin-stat-card">
-          <span>Confirmed</span>
-          <strong>{confirmed}</strong>
+        <div className="tc-admin-stat-card confirmed-card">
+          <span>Confirmed bookings</span>
+          <strong>{statistics.confirmed}</strong>
+          <small>Approved bookings</small>
         </div>
 
-        <div className="admin-stat-card">
-          <span>Rejected</span>
-          <strong>{rejected}</strong>
+        <div className="tc-admin-stat-card rejected-card">
+          <span>Rejected bookings</span>
+          <strong>{statistics.rejected}</strong>
+          <small>Declined bookings</small>
         </div>
-      </div>
 
-      <section className="admin-bookings-section">
-        <div className="admin-section-heading">
+      </section>
+
+      {/* Booking management */}
+      <section className="tc-admin-section">
+
+        <div className="tc-admin-section-heading">
           <div>
-            <h2>Recent Bookings</h2>
-            <p>Review and manage passenger booking requests.</p>
+            <span className="tc-admin-eyebrow">MANAGEMENT</span>
+            <h2>Booking management</h2>
+            <p>Review passenger requests and manage reservations.</p>
           </div>
-          <span>{bookings.length} bookings</span>
+
+          <span className="tc-admin-count">
+            {filteredBookings.length} results
+          </span>
         </div>
 
-        {bookings.length === 0 ? (
-          <div className="empty-bookings">
-            No bookings have been submitted yet.
+        {/* Search and filters */}
+        <div className="tc-admin-toolbar">
+
+          <input
+            type="search"
+            placeholder="Search passenger, reference, phone or operator..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+          >
+            <option value="ALL">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+
+        </div>
+
+        {/* Booking table */}
+        {filteredBookings.length === 0 ? (
+
+          <div className="tc-admin-empty">
+            <h3>No bookings found</h3>
+            <p>
+              Try changing your search or status filter.
+            </p>
           </div>
+
         ) : (
-          <div className="admin-table-wrapper">
-            <table className="admin-bookings-table">
+
+          <div className="tc-admin-table-wrapper">
+            <table className="tc-admin-table">
+
               <thead>
                 <tr>
                   <th>Passenger</th>
@@ -169,62 +333,375 @@ function AdminDashboard() {
               </thead>
 
               <tbody>
-                {bookings.map((booking) => (
+                {filteredBookings.map(booking => (
+
                   <tr key={booking.id}>
+
                     <td>
                       <strong>{booking.passenger_name}</strong>
                       <small>{booking.passenger_email}</small>
                       <small>{booking.passenger_phone}</small>
                     </td>
 
-                    <td>{booking.route || "Route unavailable"}</td>
-                    <td>{booking.operator || "Not available"}</td>
+                    <td>
+                      {booking.route || "Route unavailable"}
+                    </td>
+
+                    <td>
+                      {booking.operator || "Not available"}
+                    </td>
+
                     <td>{booking.seats_requested}</td>
 
                     <td>
-                      <span className={getStatusClass(booking.status)}>
+                      <span className={statusClass(booking.status)}>
                         {booking.status}
                       </span>
                     </td>
 
                     <td>
-                      {booking.status === "PENDING" ? (
-                        <div className="booking-actions">
-                          <button
-                            className="confirm-button"
-                            disabled={updatingId === booking.id}
-                            onClick={() =>
-                              updateBooking(booking.id, "CONFIRMED")
-                            }
-                          >
-                            Confirm
-                          </button>
+                      <div className="tc-admin-actions">
 
-                          <button
-                            className="reject-button"
-                            disabled={updatingId === booking.id}
-                            onClick={() =>
-                              updateBooking(booking.id, "REJECTED")
-                            }
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="no-action">No actions</span>
-                      )}
+                        <button
+                          className="tc-admin-view"
+                          onClick={() => setSelectedBooking(booking)}
+                        >
+                          View
+                        </button>
+
+                        {booking.status === "PENDING" && (
+                          <>
+                            <button
+                              className="tc-admin-confirm"
+                              disabled={updatingId === booking.id}
+                              onClick={() =>
+                                updateBooking(booking.id, "CONFIRMED")
+                              }
+                            >
+                              Confirm
+                            </button>
+
+                            <button
+                              className="tc-admin-reject"
+                              disabled={updatingId === booking.id}
+                              onClick={() =>
+                                updateBooking(booking.id, "REJECTED")
+                              }
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                      </div>
 
                       {updatingId === booking.id && (
                         <small>Updating...</small>
                       )}
                     </td>
+
                   </tr>
+
                 ))}
               </tbody>
+
             </table>
           </div>
+
         )}
+
       </section>
+      {/* Payment monitoring */}
+<section className="tc-admin-section tc-admin-payments">
+
+  <div className="tc-admin-section-heading">
+    <div>
+      <span className="tc-admin-eyebrow">FINANCIAL MONITORING</span>
+      <h2>Payment monitoring</h2>
+      <p>
+        Monitor M-Pesa transactions and Safaricom verification results.
+      </p>
+    </div>
+
+    <button
+      className="tc-admin-refresh"
+      onClick={getPayments}
+      disabled={paymentsLoading}
+    >
+      {paymentsLoading ? "Refreshing..." : "Refresh payments"}
+    </button>
+  </div>
+
+  {/* Payment statistics */}
+  <div className="tc-admin-stats">
+
+    <div className="tc-admin-stat-card">
+      <span>Total payments</span>
+      <strong>{paymentStatistics.total}</strong>
+      <small>Payment records retrieved</small>
+    </div>
+
+    <div className="tc-admin-stat-card confirmed-card">
+      <span>Successful payments</span>
+      <strong>{paymentStatistics.successful}</strong>
+      <small>Transactions marked successful</small>
+    </div>
+
+    <div className="tc-admin-stat-card pending-card">
+      <span>Pending payments</span>
+      <strong>{paymentStatistics.pending}</strong>
+      <small>Awaiting transaction results</small>
+    </div>
+
+    <div className="tc-admin-stat-card">
+      <span>Verified payments</span>
+      <strong>{paymentStatistics.verified}</strong>
+      <small>Verified by Safaricom</small>
+    </div>
+
+  </div>
+
+  {paymentsError && (
+    <div className="tc-admin-error">
+      {paymentsError}
+    </div>
+  )}
+
+  {/* Payment search and filter */}
+  <div className="tc-admin-toolbar">
+
+    <input
+      type="search"
+      placeholder="Search passenger, payment reference or M-Pesa receipt..."
+      value={paymentSearch}
+      onChange={e => setPaymentSearch(e.target.value)}
+    />
+
+    <select
+      value={paymentStatusFilter}
+      onChange={e => setPaymentStatusFilter(e.target.value)}
+    >
+      <option value="ALL">All payment statuses</option>
+      <option value="PENDING">Pending</option>
+      <option value="SUCCESS">Successful</option>
+      <option value="FAILED">Failed</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+
+  </div>
+
+  {paymentsLoading && payments.length === 0 ? (
+
+    <div className="tc-admin-empty">
+      <h3>Loading payment records...</h3>
+      <p>Please wait while payment information is retrieved.</p>
+    </div>
+
+  ) : filteredPayments.length === 0 ? (
+
+    <div className="tc-admin-empty">
+      <h3>No payment records found</h3>
+      <p>
+        Try changing your search or payment status filter.
+      </p>
+    </div>
+
+  ) : (
+
+    <div className="tc-admin-table-wrapper">
+      <table className="tc-admin-table">
+
+        <thead>
+          <tr>
+            <th>Payment reference</th>
+            <th>Passenger</th>
+            <th>Amount</th>
+            <th>M-Pesa receipt</th>
+            <th>Transaction status</th>
+            <th>Verification</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filteredPayments.map(payment => (
+
+            <tr key={payment.id}>
+
+              <td>
+                <strong>{payment.payment_reference || `PAY-${payment.id}`}</strong>
+                <small>Payment ID: {payment.id}</small>
+              </td>
+
+              <td>
+                <strong>{payment.passenger || "Not available"}</strong>
+                <small>
+                  Booking: {payment.booking_reference || "Unavailable"}
+                </small>
+              </td>
+
+              <td>
+                <strong>
+                  KSh {Number(payment.amount || 0).toLocaleString("en-KE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </strong>
+              </td>
+
+              <td>
+                {payment.mpesa_receipt_number || "Not received"}
+              </td>
+
+              <td>
+                <span className={`tc-admin-status ${String(payment.status || "").toLowerCase()}`}>
+                  {payment.status}
+                </span>
+              </td>
+
+              <td>
+                <span className={`tc-admin-verification ${
+                  payment.safaricom_verified ? "verified" : "not-verified"
+                }`}>
+                  {payment.safaricom_verified
+                    ? "Verified"
+                    : "Not verified"}
+                </span>
+              </td>
+
+            </tr>
+
+          ))}
+        </tbody>
+
+      </table>
+    </div>
+
+  )}
+
+  <div className="tc-admin-payment-footer">
+    Showing {filteredPayments.length} of {payments.length} payment records
+  </div>
+
+</section>
+      {/* Booking details modal */}
+      {selectedBooking && (
+        <div
+          className="tc-admin-modal-overlay"
+          onClick={() => setSelectedBooking(null)}
+        >
+          <div
+            className="tc-admin-modal"
+            onClick={e => e.stopPropagation()}
+          >
+
+            <div className="tc-admin-modal-heading">
+              <div>
+                <span className="tc-admin-eyebrow">BOOKING DETAILS</span>
+                <h2>Passenger reservation</h2>
+              </div>
+
+              <button
+                onClick={() => setSelectedBooking(null)}
+                aria-label="Close booking details"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="tc-admin-detail-grid">
+
+              <div>
+                <span>Booking reference</span>
+                <strong>{selectedBooking.booking_reference}</strong>
+              </div>
+
+              <div>
+                <span>Passenger</span>
+                <strong>{selectedBooking.passenger_name}</strong>
+              </div>
+
+              <div>
+                <span>Email</span>
+                <strong>{selectedBooking.passenger_email}</strong>
+              </div>
+
+              <div>
+                <span>Phone</span>
+                <strong>{selectedBooking.passenger_phone}</strong>
+              </div>
+
+              <div>
+                <span>Transport operator</span>
+                <strong>{selectedBooking.operator}</strong>
+              </div>
+
+              <div>
+                <span>Journey</span>
+                <strong>{selectedBooking.route}</strong>
+              </div>
+
+              <div>
+                <span>Seats requested</span>
+                <strong>{selectedBooking.seats_requested}</strong>
+              </div>
+
+              <div>
+                <span>Booking status</span>
+                <strong>
+                  <span className={statusClass(selectedBooking.status)}>
+                    {selectedBooking.status}
+                  </span>
+                </strong>
+              </div>
+
+              <div>
+                <span>Confirmation reference</span>
+                <strong>
+                  {selectedBooking.operator_confirmation_reference || "Not provided"}
+                </strong>
+              </div>
+
+              <div>
+                <span>Booking date</span>
+                <strong>{formatDate(selectedBooking.created_at)}</strong>
+              </div>
+
+            </div>
+
+            {selectedBooking.status === "PENDING" && (
+              <div className="tc-admin-modal-actions">
+
+                <button
+                  className="tc-admin-confirm"
+                  disabled={updatingId === selectedBooking.id}
+                  onClick={() =>
+                    updateBooking(selectedBooking.id, "CONFIRMED")
+                  }
+                >
+                  Confirm booking
+                </button>
+
+                <button
+                  className="tc-admin-reject"
+                  disabled={updatingId === selectedBooking.id}
+                  onClick={() =>
+                    updateBooking(selectedBooking.id, "REJECTED")
+                  }
+                >
+                  Reject booking
+                </button>
+
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      <footer className="tc-admin-footer">
+        Trans-Connect Administration · Booking Management
+      </footer>
+
     </div>
   );
 }

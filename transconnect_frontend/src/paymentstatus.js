@@ -12,6 +12,32 @@ export default function PaymentStatus({ bookingId, onBack }) {
   const [loadingBooking, setLoadingBooking] = useState(true);
   const [loadingPayment, setLoadingPayment] = useState(false);
 
+
+      const retrieveTicket = async () => {
+    try {
+      const response = await api.get(
+        `payments/bookings/${bookingId}/ticket/`
+      );
+
+      if (response.data?.ticket) {
+        setTicket(response.data.ticket);
+        setPaymentStatus("SUCCESS");
+        setMessage(
+          response.data.message || "Your verified ticket has been retrieved."
+        );
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      // A 404 simply means there is no verified ticket yet.
+      if (error.response?.status !== 404) {
+        console.error("Ticket retrieval failed:", error);
+      }
+
+      return false;
+    }
+  };
   useEffect(() => {
     const fetchBooking = async () => {
       setLoadingBooking(true);
@@ -19,8 +45,11 @@ export default function PaymentStatus({ bookingId, onBack }) {
 
       try {
         const response = await api.get(`bookings/${bookingId}/`);
-        setBooking(response.data);
+       setBooking(response.data);
         setPhoneNumber(response.data.passenger_phone || "");
+
+// Check whether this booking already has a verified ticket.
+await retrieveTicket();
       } catch (error) {
         console.error("Booking retrieval failed:", error);
         setMessage(
@@ -90,10 +119,16 @@ export default function PaymentStatus({ bookingId, onBack }) {
       }
 
       if (data.status === "SUCCESS") {
-        setPaymentStatus("SUCCESS");
-        setMessage(
-          data.message || "This booking has already been paid for."
-        );
+  setPaymentStatus("SUCCESS");
+  setMessage("Payment already completed. Retrieving your ticket...");
+
+  const ticketRetrieved = await retrieveTicket();
+
+  if (!ticketRetrieved) {
+    setMessage(
+      "Payment is successful, but your ticket could not be retrieved. Please try again."
+    );
+  }
       } else if (data.status === "FAILED") {
         setPaymentStatus("FAILED");
         setMessage(data.message || "Payment could not be completed.");
@@ -134,9 +169,14 @@ export default function PaymentStatus({ bookingId, onBack }) {
       const data = response.data;
 
       if (data.successful && data.verified) {
-        setPaymentStatus("SUCCESS");
-        setTicket(data.ticket);
-        setMessage("Your payment has been verified successfully.");
+        const ticketRetrieved = await retrieveTicket();
+
+        if (!ticketRetrieved) {
+          setPaymentStatus("SUCCESS");
+            setMessage(
+              "Payment verified successfully, but ticket retrieval is temporarily unavailable. Please try again."
+            );
+              }
       } else if (data.status === "FAILED") {
         setPaymentStatus("FAILED");
         setMessage(data.message || "Payment was not completed.");
@@ -458,13 +498,15 @@ export default function PaymentStatus({ bookingId, onBack }) {
                   </div>
 
                   <div>
-                    <span>Seats</span>
-                    <strong>{ticket.seats}</strong>
+                    <span>Selected seats</span>
+                        <strong>
+                        {ticket.selected_seats?.join(", ") || ticket.seats}
+                              </strong>
                   </div>
 
                   <div>
                     <span>Booking reference</span>
-                    <strong>{booking.booking_reference}</strong>
+                    <strong>{ticket.booking_reference || booking.booking_reference}</strong>
                   </div>
 
                   <div>

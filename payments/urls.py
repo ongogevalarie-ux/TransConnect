@@ -5,6 +5,7 @@ from .views import (
     MpesaCallbackView,
     VerifyPaymentView,
     RetrieveTicketView,
+    AdminPaymentMonitoringView,
 )
 
 urlpatterns = [
@@ -27,5 +28,10 @@ urlpatterns = [
         "bookings/<int:booking_id>/ticket/",
         RetrieveTicketView.as_view(),
         name="retrieve-ticket",
+    ),
+    path(
+        "admin/",
+        AdminPaymentMonitoringView.as_view(),
+        name="admin-payment-monitoring",
     ),
 ]

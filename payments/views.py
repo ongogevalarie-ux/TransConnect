@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from bookings.models import Booking
 from fares.models import Fare
 from .models import Payment
-from .serializers import PaymentInitiationSerializer
+from .serializers import (PaymentInitiationSerializer,AdminPaymentSerializer,)
 from .services.mpesa import initiate_stk_push, normalize_phone_number
 from .services.verification import verify_payment_with_safaricom
 
@@ -432,3 +432,25 @@ class RetrieveTicketView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+class AdminPaymentMonitoringView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        payments = Payment.objects.select_related(
+            "booking",
+            "booking__user",
+        ).order_by("-created_at")
+
+        serializer = AdminPaymentSerializer(
+            payments,
+            many=True
+        )
+
+        return Response(
+            {
+                "count": payments.count(),
+                "results": serializer.data,
+            },
+            status=status.HTTP_200_OK
+        )  
