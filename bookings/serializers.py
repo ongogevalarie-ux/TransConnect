@@ -9,7 +9,7 @@ from fares.models import Fare
 
 class BookingSerializer(serializers.ModelSerializer):
     selected_seats = serializers.SerializerMethodField()
-
+    payment_status = serializers.SerializerMethodField()
     operator = serializers.SerializerMethodField()
     origin = serializers.SerializerMethodField()
     destination = serializers.SerializerMethodField()
@@ -46,6 +46,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'total_amount',
             'status',
             'created_at',
+            'payment_status',
         ]
 
         read_only_fields = [
@@ -62,7 +63,13 @@ class BookingSerializer(serializers.ModelSerializer):
             'fare_per_seat',
             'total_amount',
         ]
+    def get_payment_status(self, obj):
+        payments = list(obj.payments.all())
 
+        if payments:
+            return payments[0].status
+
+        return 'NOT PAID'
     def create(self, validated_data):
         seat_numbers = validated_data.pop("seat_numbers")
 

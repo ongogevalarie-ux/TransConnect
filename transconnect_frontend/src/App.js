@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link, Routes, Route, useNavigate } from "react-router-dom";
+import { Link, Routes, Route, useNavigate, Navigate } from "react-router-dom";
 import Register from "./Register";
 import Login from "./Login";
 import Booking from "./Booking";
@@ -8,7 +8,7 @@ import BookingSuccess from "./BookingSuccess";
 import AdminDashboard from "./AdminDashboard";
 import PaymentPage from "./paymentpage";
 import PaymentStatus from "./paymentstatus";
-
+import MyBookings from "./MyBookings";
 import "./App.css";
 
 function Home() {
@@ -263,10 +263,14 @@ function App() {
           <Link to="/">Home</Link>
 
           {user ? (
-            <>
+  <>
+            <Link to="/my-bookings">
+               My Bookings
+             </Link>
+
               <span className="welcome">
-                Welcome, {user}
-              </span>
+                  Welcome, {user}
+               </span>
 
               <button
                 className="logout-button"
@@ -314,6 +318,13 @@ function App() {
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/pay/:bookingId" element={<PaymentPage />} />
         <Route path="/payment-status/:bookingId" element={<PaymentStatus />} />
+        <Route path="/my-bookings" element={localStorage.getItem("access_token") ? (
+      <MyBookings />
+    ) : (
+      <Navigate to="/login" replace />
+    )
+  }
+/>
       </Routes>
 
       <footer>

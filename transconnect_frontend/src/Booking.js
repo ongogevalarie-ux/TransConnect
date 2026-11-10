@@ -91,7 +91,7 @@ function Booking() {
     setLoading(true);
 
     try {
-      const bookingResponse = await api.post("/bookings/", {
+      const bookingResponse = await api.post("bookings/", {
         schedule: Number(scheduleId),
         passenger_name: formData.passenger_name,
         passenger_email: formData.passenger_email,

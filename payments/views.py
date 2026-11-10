@@ -384,3 +384,51 @@ class VerifyPaymentView(APIView):
             response_data["ticket"] = build_provisional_ticket(payment)
 
         return Response(response_data, status=status.HTTP_200_OK)
+
+class RetrieveTicketView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, booking_id):
+        payment = Payment.objects.select_related(
+            "booking",
+            "booking__schedule",
+            "booking__schedule__route",
+            "booking__schedule__operator",
+        ).filter(
+            booking_id=booking_id,
+            booking__user=request.user,
+            status="SUCCESS",
+            safaricom_verified=True,
+        ).order_by("-created_at").first()
+
+        if payment is None:
+            return Response(
+                {
+                    "error": (
+                        "No verified successful payment was found "
+                        "for this booking."
+                    )
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        ticket = build_provisional_ticket(payment)
+
+        ticket["selected_seats"] = list(
+            payment.booking.seat_reservations.values_list(
+                "seat_number",
+                flat=True,
+            )
+        )
+
+        ticket["booking_reference"] = (
+            payment.booking.booking_reference
+        )
+
+        return Response(
+            {
+                "ticket": ticket,
+                "message": "Verified ticket retrieved successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )

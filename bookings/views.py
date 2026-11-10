@@ -1,3 +1,5 @@
+from django.db.models import Prefetch
+from payments.models import Payment
 from django.db import IntegrityError, transaction, transaction
 from django.db.migrations import serializer
 from django.shortcuts import get_object_or_404
@@ -25,12 +27,18 @@ class BookingListCreateView(generics.ListCreateAPIView):
             user=self.request.user
         ).select_related(
             'schedule',
-            'schedule__operator'
-        ).prefetch_related('seat_reservations')
+            'schedule__operator',
+            'schedule__route'
+        ).prefetch_related(
+            'seat_reservations',
+            Prefetch(
+                'payments',
+                queryset=Payment.objects.order_by('-created_at')
+            )
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
 
 
 class BookingDetailView(generics.RetrieveAPIView):
@@ -45,8 +53,13 @@ class BookingDetailView(generics.RetrieveAPIView):
             'schedule',
             'schedule__operator',
             'schedule__route'
-        ).prefetch_related('seat_reservations')
-
+        ).prefetch_related(
+            'seat_reservations',
+            Prefetch(
+                'payments',
+                queryset=Payment.objects.order_by('-created_at')
+            )
+        )
 class AdminBookingListView(generics.ListAPIView):
 
     serializer_class = AdminBookingSerializer

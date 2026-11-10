@@ -18,7 +18,7 @@ function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await api.post("/auth/login/", {
+      const response = await api.post("auth/login/", {
         username,
         password,
       });
