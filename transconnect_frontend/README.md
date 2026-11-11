@@ -15,54 +15,6 @@ Trans-Connect addresses this challenge by providing a centralized platform where
 
 Passengers can search for journeys, select available schedules, reserve seats, and initiate M-Pesa payments through the platform.
 
-##  Key Features
-
-###  Passenger Features
-- User registration and authentication.
-- Search for journeys by origin and destination.
-- View available transport operators.
-- Browse routes and journey schedules.
-- View transport fares.
-- View available and occupied seats.
-- Select and reserve seats.
-- Initiate M-Pesa payments.
-- Monitor payment status.
-- Access booking information and verified tickets.
-
-### Transport Information
-- Integrated transport operator information.
-- Operator profiles and logos.
-- Route information.
-- Departure and arrival schedules.
-- Fare information.
-- Centralized journey search.
-
-### Administrator Features
-- Secure administrator authentication.
-- Dashboard overview and statistics.
-- Manage transport operators.
-- Add and modify routes.
-- Manage journey schedules.
-- Manage transport fares.
-- View and manage passenger bookings.
-- Monitor M-Pesa transactions.
-- Monitor Safaricom payment verification.
-- Update booking statuses.
-
-### M-Pesa Integration
-Trans-Connect integrates Safaricom's Daraja API to support M-Pesa STK Push payments.
-
-The payment process includes:
-1. Passenger selects a booking.
-2. Passenger initiates an M-Pesa payment.
-3. The system sends an STK Push request.
-4. Safaricom processes the payment.
-5. The system receives the payment callback.
-6. Payment verification is performed through Safaricom.
-7. Successful verified payments allow booking confirmation and ticket retrieval.
-
-**Security note:** A payment is only considered successful after verification. An accepted STK Push request alone does not confirm payment.
-
 ---
 
 ## Technologies Used
