@@ -22,8 +22,7 @@ function BookingSuccess() {
     );
   }
 
-  const canPay = booking.status === "CONFIRMED";
-
+  const canPay = !["REJECTED", "CANCELLED"].includes(booking.status);
   return (
     <div className="auth-container">
       <div className="auth-card">

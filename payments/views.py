@@ -20,6 +20,23 @@ from .services.verification import verify_payment_with_safaricom
 
 logger = logging.getLogger(__name__)
 
+def confirm_booking_after_verified_payment(payment):
+    """
+    Confirm a booking only after Safaricom has verified
+    that its payment was successful.
+    """
+    payment.refresh_from_db()
+
+    if payment.status == "SUCCESS" and payment.safaricom_verified:
+        booking = payment.booking
+
+        if booking.status == "PENDING":
+            booking.status = "CONFIRMED"
+            booking.save(update_fields=["status", "updated_at"])
+
+        return True
+
+    return False
 # A PENDING payment older than this is treated as abandoned, so the
 # passenger can try again instead of being blocked forever.
 PENDING_TIMEOUT = timedelta(minutes=2)
@@ -57,9 +74,9 @@ class InitiatePaymentView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        if booking.status != "CONFIRMED":
+        if booking.status not in ["PENDING", "CONFIRMED"]:
             return Response(
-        {"error": "This booking must be confirmed before payment."},
+        {"error": "This booking cannot be paid for because it is rejected or cancelled."},
         status=status.HTTP_400_BAD_REQUEST,
     )
 
@@ -113,6 +130,7 @@ class InitiatePaymentView(APIView):
                 try:
                     verify_payment_with_safaricom(existing_payment)
                     existing_payment.refresh_from_db()
+                    confirm_booking_after_verified_payment(existing_payment)
                 except Exception:
                     logger.warning(
                         "Could not verify stale payment %s", existing_payment.id
@@ -299,6 +317,7 @@ class MpesaCallbackView(APIView):
         # Verify with Safaricom outside the DB transaction.
         try:
             verify_payment_with_safaricom(payment)
+            confirm_booking_after_verified_payment(payment)
         except Exception:
             logger.exception(
                 "Verification pending for payment %s; will be retried.", payment.id
@@ -356,6 +375,7 @@ class VerifyPaymentView(APIView):
             try:
                 _verified, message = verify_payment_with_safaricom(payment)
                 payment.refresh_from_db()
+                confirm_booking_after_verified_payment(payment)
             except Exception:
                 logger.exception("Verification failed for payment %s", payment.id)
                 return Response(

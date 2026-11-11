@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import {
+import api from "./services/api";import {
   Link,
   NavLink,
   Routes,
@@ -187,15 +186,12 @@ function Home() {
     setResults([]);
 
     try {
-      const response = await axios.get(
-        "http://127.0.0.1:8000/api/search/",
-        {
-          params: {
-            origin: origin.trim(),
-            destination: destination.trim(),
-          },
-        }
-      );
+      const response = await api.get("search/", {
+  params: {
+    origin: origin.trim(),
+    destination: destination.trim(),
+  },
+});
 
       const journeys = getList(response.data);
       setResults(journeys);
@@ -229,9 +225,7 @@ function Home() {
   useEffect(() => {
     const fetchFeaturedRoutes = async () => {
       try {
-        const response = await axios.get(
-          "http://127.0.0.1:8000/api/search/featured/"
-        );
+        const response = await api.get("search/featured/");
 
         setFeaturedRoutes(getList(response.data));
       } catch (err) {
@@ -319,13 +313,13 @@ function Home() {
 
               <p>
                 Discover transport operators, explore routes, check fares
-                and departure schedules — all in one convenient place.
+                and departure schedules all in one convenient place.
               </p>
 
               <div className="tc-home-trust">
-                <span>✓ Multiple transport operators</span>
-                <span>✓ Clear fare information</span>
-                <span>✓ Convenient booking access</span>
+                <span> Multiple transport operators</span>
+                <span> Clear fare information</span>
+                <span> Convenient booking access</span>
               </div>
 
             </div>
@@ -830,6 +824,23 @@ function App() {
   const [user, setUser] = useState(
     localStorage.getItem("username")
   );
+  useEffect(() => {
+  const handleSessionExpired = () => {
+    setUser(null);
+  };
+
+  window.addEventListener(
+    "transconnect:session-expired",
+    handleSessionExpired
+  );
+
+  return () => {
+    window.removeEventListener(
+      "transconnect:session-expired",
+      handleSessionExpired
+    );
+  };
+}, []);
 
   const handleLogin = (username) => {
     localStorage.setItem("username", username);

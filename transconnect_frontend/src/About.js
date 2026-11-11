@@ -4,7 +4,20 @@ import "./App.css";
 function About() {
   return (
     <div className="tc-about-page">
-      <section className="tc-about-hero">
+      <section className="tc-about-hero" style={{
+    backgroundImage: `
+      linear-gradient(
+        90deg,
+        rgba(5, 19, 43, 0.94) 0%,
+        rgba(5, 19, 43, 0.82) 48%,
+        rgba(5, 19, 43, 0.42) 100%
+      ),
+      url("${process.env.PUBLIC_URL}/images/kenyan-coach.jpg")
+    `,
+    backgroundPosition: "center 48%",
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
+  }}>
         <span>ABOUT TRANS-CONNECT</span>
         <h1>Connecting journeys across Kenya.</h1>
         <p>

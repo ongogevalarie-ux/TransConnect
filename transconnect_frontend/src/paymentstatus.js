@@ -12,25 +12,30 @@ export default function PaymentStatus({ bookingId, onBack }) {
   const [loadingBooking, setLoadingBooking] = useState(true);
   const [loadingPayment, setLoadingPayment] = useState(false);
 
-
-      const retrieveTicket = async () => {
+  const retrieveTicket = async () => {
     try {
       const response = await api.get(
         `payments/bookings/${bookingId}/ticket/`
       );
 
       if (response.data?.ticket) {
-        setTicket(response.data.ticket);
-        setPaymentStatus("SUCCESS");
+  setTicket(response.data.ticket);
+
+  setBooking((previous) => ({
+    ...previous,
+    status: response.data.ticket.booking_status || "CONFIRMED",
+  }));
+
+  setPaymentStatus("SUCCESS");
         setMessage(
-          response.data.message || "Your verified ticket has been retrieved."
+          response.data.message ||
+          "Your verified ticket has been retrieved."
         );
         return true;
       }
 
       return false;
     } catch (error) {
-      // A 404 simply means there is no verified ticket yet.
       if (error.response?.status !== 404) {
         console.error("Ticket retrieval failed:", error);
       }
@@ -38,6 +43,7 @@ export default function PaymentStatus({ bookingId, onBack }) {
       return false;
     }
   };
+
   useEffect(() => {
     const fetchBooking = async () => {
       setLoadingBooking(true);
@@ -45,13 +51,14 @@ export default function PaymentStatus({ bookingId, onBack }) {
 
       try {
         const response = await api.get(`bookings/${bookingId}/`);
-       setBooking(response.data);
+
+        setBooking(response.data);
         setPhoneNumber(response.data.passenger_phone || "");
 
-// Check whether this booking already has a verified ticket.
-await retrieveTicket();
+        await retrieveTicket();
       } catch (error) {
         console.error("Booking retrieval failed:", error);
+
         setMessage(
           error.response?.data?.detail ||
           "Unable to retrieve your booking. Please try again."
@@ -64,8 +71,23 @@ await retrieveTicket();
     if (bookingId) fetchBooking();
   }, [bookingId]);
 
-  const formatDate = (value) => {
+  const formatAmount = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return "Fare unavailable";
+    }
+
+    return `KSh ${Number(value).toLocaleString("en-KE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const formatTime = (value) => {
     if (!value) return "Not available";
+
+    if (/^\d{2}:\d{2}/.test(value)) {
+      return value.slice(0, 5);
+    }
 
     const date = new Date(value);
 
@@ -77,14 +99,6 @@ await retrieveTicket();
     });
   };
 
-  const formatAmount = (value) => {
-    if (value === null || value === undefined) {
-      return "Fare unavailable";
-    }
-
-    return `KSh ${Number(value).toLocaleString("en-KE")}`;
-  };
-
   const handleInitiatePayment = async (e) => {
     e.preventDefault();
 
@@ -93,10 +107,15 @@ await retrieveTicket();
       return;
     }
 
-    if (!booking || booking.status !== "CONFIRMED") {
-      setMessage("Your booking must be confirmed before payment.");
-      return;
-    }
+    if (
+  !booking ||
+  !["PENDING", "CONFIRMED"].includes(booking.status)
+) {
+  setMessage(
+    "This booking cannot be paid for because it has been rejected or cancelled."
+  );
+  return;
+}
 
     setLoadingPayment(true);
     setMessage("");
@@ -109,7 +128,9 @@ await retrieveTicket();
 
       const data = response.data;
 
-      if (data.payment_id) setPaymentId(data.payment_id);
+      if (data.payment_id) {
+        setPaymentId(data.payment_id);
+      }
 
       if (data.amount) {
         setBooking((previous) => ({
@@ -119,16 +140,16 @@ await retrieveTicket();
       }
 
       if (data.status === "SUCCESS") {
-  setPaymentStatus("SUCCESS");
-  setMessage("Payment already completed. Retrieving your ticket...");
+        setPaymentStatus("SUCCESS");
+        setMessage("Payment already completed. Retrieving your ticket...");
 
-  const ticketRetrieved = await retrieveTicket();
+        const retrieved = await retrieveTicket();
 
-  if (!ticketRetrieved) {
-    setMessage(
-      "Payment is successful, but your ticket could not be retrieved. Please try again."
-    );
-  }
+        if (!retrieved) {
+          setMessage(
+            "Payment is successful, but ticket retrieval is temporarily unavailable. Please try again."
+          );
+        }
       } else if (data.status === "FAILED") {
         setPaymentStatus("FAILED");
         setMessage(data.message || "Payment could not be completed.");
@@ -141,6 +162,7 @@ await retrieveTicket();
       }
     } catch (error) {
       console.error("Payment initiation failed:", error);
+
       setPaymentStatus("READY");
       setMessage(
         error.response?.data?.error ||
@@ -169,14 +191,14 @@ await retrieveTicket();
       const data = response.data;
 
       if (data.successful && data.verified) {
-        const ticketRetrieved = await retrieveTicket();
+        const retrieved = await retrieveTicket();
 
-        if (!ticketRetrieved) {
+        if (!retrieved) {
           setPaymentStatus("SUCCESS");
-            setMessage(
-              "Payment verified successfully, but ticket retrieval is temporarily unavailable. Please try again."
-            );
-              }
+          setMessage(
+            "Payment verified successfully, but ticket retrieval is temporarily unavailable. Please try again."
+          );
+        }
       } else if (data.status === "FAILED") {
         setPaymentStatus("FAILED");
         setMessage(data.message || "Payment was not completed.");
@@ -189,6 +211,7 @@ await retrieveTicket();
       }
     } catch (error) {
       console.error("Payment verification failed:", error);
+
       setMessage(
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -205,7 +228,7 @@ await retrieveTicket();
         <div className="payment-card payment-loading">
           <div className="loading-spinner"></div>
           <h2>Loading your booking</h2>
-          <p>Please wait while we retrieve your journey details.</p>
+          <p>Retrieving your journey details...</p>
         </div>
       </div>
     );
@@ -215,236 +238,339 @@ await retrieveTicket();
     return (
       <div className="payment-page">
         <div className="payment-card">
-          <h2>Booking Not Found</h2>
+          <h2>Booking not found</h2>
           <p className="payment-error">{message}</p>
           <button className="payment-back-button" onClick={onBack}>
-            Go Back
+            Go back
           </button>
         </div>
       </div>
     );
   }
 
+  const farePerSeat = booking.fare_per_seat;
   const totalAmount = booking.total_amount;
+  const seatCount = Number(booking.seats_requested || 0);
 
   return (
     <div className="payment-page">
       <div className="payment-container">
 
-        <div className="payment-top">
+        <header className="payment-top">
           <div>
-            <span className="payment-eyebrow">TRANS-CONNECT</span>
+            <span className="payment-eyebrow">TRANS-CONNECT CHECKOUT</span>
             <h1>Complete your payment</h1>
-            <p>Review your journey and secure your seat.</p>
+            <p>Review your booking and pay securely using M-Pesa.</p>
           </div>
 
           <div className="secure-label">
             <span>✓</span> Secure checkout
           </div>
-        </div>
+        </header>
 
         {paymentStatus !== "SUCCESS" && (
-          <div className="payment-layout">
-
-            <section className="payment-card booking-panel">
-              <div className="panel-heading">
+          <>
+            <div className="checkout-progress">
+              <div className="checkout-step completed">
+                <span>✓</span>
                 <div>
-                  <span className="panel-eyebrow">YOUR RESERVATION</span>
-                  <h2>Booking summary</h2>
-                </div>
-
-                <span className={`status-badge ${booking.status?.toLowerCase()}`}>
-                  {booking.status}
-                </span>
-              </div>
-
-              <div className="booking-reference">
-                <span>BOOKING REFERENCE</span>
-                <strong>{booking.booking_reference || `#${booking.id}`}</strong>
-              </div>
-
-              <div className="journey-visual">
-                <div className="journey-point">
-                  <span className="journey-dot"></span>
-                  <div>
-                    <span>FROM</span>
-                    <h3>{booking.origin || "Origin unavailable"}</h3>
-                    <p>{formatDate(booking.departure_time)}</p>
-                  </div>
-                </div>
-
-                <div className="journey-line">
-                  <span>JOURNEY</span>
-                </div>
-
-                <div className="journey-point">
-                  <span className="journey-dot destination-dot"></span>
-                  <div>
-                    <span>TO</span>
-                    <h3>{booking.destination || "Destination unavailable"}</h3>
-                    <p>{formatDate(booking.arrival_time)}</p>
-                  </div>
+                  <strong>Booking</strong>
+                  <small>Reservation created</small>
                 </div>
               </div>
 
-              <div className="booking-info-grid">
-                <div className="booking-info-item">
-                  <span>Transport operator</span>
-                  <strong>{booking.operator || "Not available"}</strong>
-                </div>
+              <div className="checkout-progress-line"></div>
 
-                <div className="booking-info-item">
-                  <span>Number of seats</span>
-                  <strong>{booking.seats_requested}</strong>
-                </div>
-
-                <div className="booking-info-item">
-                  <span>Selected seats</span>
-                  <strong>
-                    {booking.selected_seats?.join(", ") || "Not available"}
-                  </strong>
-                </div>
-
-                <div className="booking-info-item">
-                  <span>Passenger</span>
-                  <strong>{booking.passenger_name}</strong>
-                </div>
-
-                <div className="booking-info-item">
-                  <span>Email address</span>
-                  <strong>{booking.passenger_email}</strong>
-                </div>
-
-                <div className="booking-info-item">
-                  <span>Contact number</span>
-                  <strong>{booking.passenger_phone || "Not available"}</strong>
-                </div>
-              </div>
-
-              <div className="fare-total">
+              <div className={`checkout-step ${
+                paymentStatus === "PENDING" ? "completed" : "active"
+              }`}>
+                <span>2</span>
                 <div>
-                  <span>Total amount payable</span>
-                  <small>
-                    {booking.seats_requested} seat(s) reserved
-                  </small>
+                  <strong>Payment</strong>
+                  <small>Complete checkout</small>
+                </div>
+              </div>
+
+              <div className="checkout-progress-line"></div>
+
+              <div className="checkout-step">
+                <span>3</span>
+                <div>
+                  <strong>Ticket</strong>
+                  <small>Receive your ticket</small>
+                </div>
+              </div>
+            </div>
+
+            <div className="payment-layout">
+
+              {/* BOOKING SUMMARY */}
+
+              <section className="payment-card booking-panel">
+                <div className="panel-heading">
+                  <div>
+                    <span className="panel-eyebrow">YOUR RESERVATION</span>
+                    <h2>Booking summary</h2>
+                  </div>
+
+                  <span className={`status-badge ${booking.status?.toLowerCase()}`}>
+                    {booking.status}
+                  </span>
                 </div>
 
-                <strong>{formatAmount(totalAmount)}</strong>
-              </div>
-            </section>
+                <div className="booking-reference">
+                  <div>
+                    <span>BOOKING REFERENCE</span>
+                    <strong>
+                      {booking.booking_reference || `#${booking.id}`}
+                    </strong>
+                  </div>
+                  <span className="reference-tag">TRANS-CONNECT</span>
+                </div>
 
-            <section className="payment-card payment-method-panel">
-              {paymentStatus === "READY" && (
-                <>
-                  <div className="mpesa-heading">
-                    <div className="mpesa-mark">M</div>
+                <div className="journey-visual">
+                  <div className="journey-point">
+                    <span className="journey-dot"></span>
                     <div>
-                      <span className="panel-eyebrow">PAYMENT METHOD</span>
-                      <h2>M-Pesa</h2>
+                      <span>DEPARTURE</span>
+                      <h3>{booking.origin || "Origin unavailable"}</h3>
+                      <p>{formatTime(booking.departure_time)}</p>
                     </div>
                   </div>
 
-                  {booking.status === "CONFIRMED" ? (
+                  <div className="journey-line">
+                    <span>YOUR JOURNEY</span>
+                  </div>
+
+                  <div className="journey-point">
+                    <span className="journey-dot destination-dot"></span>
+                    <div>
+                      <span>ARRIVAL</span>
+                      <h3>{booking.destination || "Destination unavailable"}</h3>
+                      <p>{formatTime(booking.arrival_time)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="booking-info-grid">
+                  <div className="booking-info-item">
+                    <span>Transport operator</span>
+                    <strong>{booking.operator || "Not available"}</strong>
+                  </div>
+
+                  <div className="booking-info-item">
+                    <span>Number of seats</span>
+                    <strong>{seatCount}</strong>
+                  </div>
+
+                  <div className="booking-info-item">
+                    <span>Selected seats</span>
+                    <strong>
+                      {booking.selected_seats?.join(", ") || "Not available"}
+                    </strong>
+                  </div>
+
+                  <div className="booking-info-item">
+                    <span>Passenger</span>
+                    <strong>{booking.passenger_name || "Not available"}</strong>
+                  </div>
+
+                  <div className="booking-info-item">
+                    <span>Email address</span>
+                    <strong>{booking.passenger_email || "Not available"}</strong>
+                  </div>
+
+                  <div className="booking-info-item">
+                    <span>Contact number</span>
+                    <strong>{booking.passenger_phone || "Not available"}</strong>
+                  </div>
+                </div>
+
+                <div className="fare-breakdown">
+                  <h3>Fare breakdown</h3>
+
+                  <div className="fare-row">
+                    <span>Fare per seat</span>
+                    <strong>{formatAmount(farePerSeat)}</strong>
+                  </div>
+
+                  <div className="fare-row">
+                    <span>Number of seats</span>
+                    <strong>× {seatCount}</strong>
+                  </div>
+
+                  <div className="fare-total">
+                    <div>
+                      <span>Total amount payable</span>
+                      <small>Includes all selected seats</small>
+                    </div>
+
+                    <strong>{formatAmount(totalAmount)}</strong>
+                  </div>
+                </div>
+              </section>
+
+              {/* PAYMENT PANEL */}
+
+              <section className="payment-card payment-method-panel">
+                {paymentStatus === "READY" && (
+                  <>
+                    <div className="mpesa-heading">
+                      <div className="mpesa-mark">M</div>
+                      <div>
+                        <span className="panel-eyebrow">PAYMENT METHOD</span>
+                        <h2>M-Pesa</h2>
+                      </div>
+                    </div>
+
+                    {["PENDING", "CONFIRMED"].includes(booking.status) ? (
                     <form onSubmit={handleInitiatePayment}>
-                      <p className="payment-instructions">
-                        Enter your M-Pesa number below. A payment request
-                        will be sent to your phone.
-                      </p>
+                        <div className="checkout-amount">
+                          <span>AMOUNT TO PAY</span>
+                          <strong>{formatAmount(totalAmount)}</strong>
+                          <small>Pay using your M-Pesa registered number</small>
+                        </div>
 
-                      <label htmlFor="phoneNumber">
-                        M-Pesa phone number
-                      </label>
+                        <label htmlFor="phoneNumber">
+                          M-Pesa phone number
+                        </label>
 
-                      <input
-                        id="phoneNumber"
-                        type="tel"
-                        placeholder="e.g. 0712345678"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        required
-                      />
+                        <div className="mpesa-phone-input">
+                          <span>KE</span>
+                          <input
+                            id="phoneNumber"
+                            type="tel"
+                            placeholder="0712345678"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            required
+                          />
+                        </div>
 
-                      <div className="payment-notice">
-                        <span>i</span>
+                        <p className="phone-helper">
+                          You will receive an M-Pesa payment prompt on this number.
+                        </p>
+
+                        <div className="instruction-card">
+                          <h3>How to complete payment</h3>
+
+                          <ol>
+                            <li>
+                              <span>1</span>
+                              Enter the M-Pesa phone number you want to pay with.
+                            </li>
+                            <li>
+                              <span>2</span>
+                              Tap the button below to request payment.
+                            </li>
+                            <li>
+                              <span>3</span>
+                              Check your phone for the M-Pesa STK prompt.
+                            </li>
+                            <li>
+                              <span>4</span>
+                              Confirm the displayed amount and enter your M-Pesa PIN in the official prompt.
+                            </li>
+                            <li>
+                              <span>5</span>
+                              Return here and check your payment status.
+                            </li>
+                          </ol>
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="payment-button"
+                          disabled={
+                            loadingPayment ||
+                            totalAmount === null ||
+                            totalAmount === undefined
+                          }
+                        >
+                          {loadingPayment
+                            ? "Requesting payment..."
+                            : `Pay ${formatAmount(totalAmount)} with M-Pesa`}
+                        </button>
+
+                        <p className="payment-disclaimer">
+                          Only proceed if the amount and phone number are correct.
+                          Never share your M-Pesa PIN with anyone.
+                        </p>
+                      </form>
+                    ) : (
+                      <div className="payment-feedback failed">
+                        <div className="payment-symbol">!</div>
+                        <h2>Booking unavailable</h2>
                         <p>
-                          Keep your phone nearby and follow the instructions
-                          displayed by M-Pesa to complete payment.
+                            This booking cannot be paid for because it has been
+                            rejected or cancelled. Please contact support.
                         </p>
                       </div>
+                    )}
+                  </>
+                )}
 
-                      <button
-                        type="submit"
-                        className="payment-button"
-                        disabled={
-                          loadingPayment ||
-                          totalAmount === null ||
-                          totalAmount === undefined
-                        }
-                      >
-                        {loadingPayment
-                          ? "Requesting payment..."
-                          : `Pay ${formatAmount(totalAmount)}`}
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="payment-feedback pending">
-                      <div className="payment-symbol">!</div>
-                      <h2>Awaiting confirmation</h2>
+                {paymentStatus === "PENDING" && (
+                  <div className="payment-feedback pending">
+                    <div className="payment-symbol">...</div>
+                    <span className="panel-eyebrow">M-PESA REQUEST SENT</span>
+                    <h2>Check your phone</h2>
+                    <p>{message}</p>
+
+                    <div className="pending-payment-summary">
+                      <span>Amount requested</span>
+                      <strong>{formatAmount(totalAmount)}</strong>
+                      <span>Payment number</span>
+                      <strong>{phoneNumber}</strong>
+                    </div>
+
+                    <div className="instruction-card">
+                      <h3>What to do next</h3>
                       <p>
-                        Payment will become available once the operator
-                        confirms your booking.
+                        Complete the M-Pesa prompt on your phone. Once finished,
+                        return here and check your payment status.
                       </p>
                     </div>
-                  )}
-                </>
-              )}
 
-              {paymentStatus === "PENDING" && (
-                <div className="payment-feedback pending">
-                  <div className="payment-symbol">...</div>
-                  <h2>Payment processing</h2>
-                  <p>{message}</p>
-                  <p>
-                    Check your phone and complete the M-Pesa prompt
-                    if it has arrived.
-                  </p>
+                    <button
+                      className="payment-button"
+                      onClick={handleVerifyPayment}
+                      disabled={loadingPayment}
+                    >
+                      {loadingPayment ? "Checking..." : "Check payment status"}
+                    </button>
+                  </div>
+                )}
 
-                  <button
-                    className="payment-button"
-                    onClick={handleVerifyPayment}
-                    disabled={loadingPayment}
-                  >
-                    {loadingPayment ? "Checking..." : "Check payment status"}
-                  </button>
-                </div>
-              )}
+                {paymentStatus === "FAILED" && (
+                  <div className="payment-feedback failed">
+                    <div className="payment-symbol">!</div>
+                    <h2>Payment not completed</h2>
+                    <p>{message}</p>
 
-              {paymentStatus === "FAILED" && (
-                <div className="payment-feedback failed">
-                  <div className="payment-symbol">!</div>
-                  <h2>Payment not completed</h2>
-                  <p>{message}</p>
+                    <button
+                      className="payment-button"
+                      onClick={() => {
+                        setPaymentStatus("READY");
+                        setPaymentId(null);
+                        setMessage("");
+                      }}
+                      disabled={loadingPayment}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
 
-                  <button
-                    className="payment-button"
-                    onClick={() => {
-                      setPaymentStatus("READY");
-                      setPaymentId(null);
-                      setMessage("");
-                    }}
-                    disabled={loadingPayment}
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
-
-              {message && paymentStatus === "READY" && (
-                <p className="payment-error">{message}</p>
-              )}
-            </section>
-          </div>
+                {message && paymentStatus === "READY" && (
+                  <p className="payment-error">{message}</p>
+                )}
+              </section>
+            </div>
+          </>
         )}
+
+        {/* VERIFIED PAYMENT AND TICKET */}
 
         {paymentStatus === "SUCCESS" && (
           <section className="payment-card success-panel">
@@ -474,7 +600,7 @@ await retrieveTicket();
                   <div>
                     <span>FROM</span>
                     <h3>{ticket.origin}</h3>
-                    <small>{formatDate(ticket.departure_time)}</small>
+                    <small>{formatTime(ticket.departure_time)}</small>
                   </div>
 
                   <div className="ticket-route-arrow">→</div>
@@ -482,7 +608,7 @@ await retrieveTicket();
                   <div>
                     <span>TO</span>
                     <h3>{ticket.destination}</h3>
-                    <small>{formatDate(ticket.arrival_time)}</small>
+                    <small>{formatTime(ticket.arrival_time)}</small>
                   </div>
                 </div>
 
@@ -499,14 +625,16 @@ await retrieveTicket();
 
                   <div>
                     <span>Selected seats</span>
-                        <strong>
-                        {ticket.selected_seats?.join(", ") || ticket.seats}
-                              </strong>
+                    <strong>
+                      {ticket.selected_seats?.join(", ") || ticket.seats}
+                    </strong>
                   </div>
 
                   <div>
                     <span>Booking reference</span>
-                    <strong>{ticket.booking_reference || booking.booking_reference}</strong>
+                    <strong>
+                      {ticket.booking_reference || booking.booking_reference}
+                    </strong>
                   </div>
 
                   <div>
@@ -529,9 +657,16 @@ await retrieveTicket();
               <div className="ticket-unavailable">
                 <p>
                   Your payment is marked as successful, but ticket details
-                  are not available in this response. Please contact the
-                  transport operator or check your booking before travelling.
+                  are not available yet. Please try retrieving your ticket
+                  again before travelling.
                 </p>
+
+                <button
+                  className="payment-button"
+                  onClick={retrieveTicket}
+                >
+                  Retrieve ticket
+                </button>
               </div>
             )}
 

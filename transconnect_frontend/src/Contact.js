@@ -27,8 +27,22 @@ function Contact() {
   };
 
   return (
-    <div className="tc-contact-page">
-      <section className="tc-contact-hero">
+    <div className="tc-contact-page " >
+      <section className="tc-contact-hero"
+  style={{
+    backgroundImage: `
+      linear-gradient(
+        90deg,
+        rgba(5, 19, 43, 0.94) 0%,
+        rgba(5, 19, 43, 0.82) 48%,
+        rgba(5, 19, 43, 0.42) 100%
+      ),
+      url("${process.env.PUBLIC_URL}/images/kenyan-coach.jpg")
+    `,
+    backgroundPosition: "center 48%",
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
+  }}>
         <span>WE ARE HERE TO HELP</span>
         <h1>Let's talk about your journey.</h1>
         <p>

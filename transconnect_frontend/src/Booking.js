@@ -102,18 +102,6 @@ function Booking() {
 
       const booking = bookingResponse.data;
 
-      if (booking.status !== "CONFIRMED") {
-        navigate("/booking-success", {
-          state: {
-            booking,
-            journey,
-            paymentMessage:
-              "Your booking request was submitted. Payment will be available shortly.",
-          },
-        });
-        return;
-      }
-
       navigate(`/pay/${booking.id}`, {
         state: { booking, journey },
       });
@@ -260,18 +248,33 @@ function Booking() {
             </p>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || loadingSeats}
-          >
-            {loading ? "Processing..." : "Submit booking"}
-          </button>
+          
+<button
+  type="submit"
+  className="pay-with-mpesa-button"
+  disabled={
+    loading ||
+    loadingSeats ||
+    selectedSeats.length !== formData.seats_requested
+  }
+>
+  {loading ? (
+    "Processing booking..."
+  ) : (
+    <>
+      <span className="mpesa-button-icon">M</span>
+      Pay with M-Pesa
+      <span className="mpesa-button-arrow">→</span>
+    </>
+  )}
+</button>
+
         </form>
 
         {error && <p className="auth-error">{error}</p>}
 
         <p className="auth-link">
-          Your booking will remain pending until confirmed.
+          Your booking will be confirmed  after successful  payment.
         </p>
       </div>
     </div>

@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
-
+from datetime import timedelta
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -163,5 +163,11 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",   # React dev server
+    "http://localhost:3000", 
+    "https://paradox-undertone-docile.ngrok-free.dev"  # React dev server
 ]
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
+}
