@@ -1,5 +1,5 @@
-# TRANS-CONNECT 🚍
-### An Integrated Transport Information and Booking System in Kenya
+# TRANS-CONNECT 
+### An Integrated Transport Information and Booking System
 
 Trans-Connect is a web-based integrated transport information and booking system designed to simplify access to public transport information across Kenya. The platform brings together information from different transport operators, allowing passengers to explore available routes, compare journey details, view fares and schedules, reserve seats, and initiate payments through M-Pesa.
 
@@ -7,7 +7,7 @@ The system aims to improve accessibility, convenience, and efficiency in the pro
 
 ---
 
-## 📌 Project Overview
+##  Project Overview
 
 Finding reliable transport information in Kenya can be challenging because different transport companies maintain separate platforms for their routes, schedules, fares, and booking services.
 
@@ -15,9 +15,9 @@ Trans-Connect addresses this challenge by providing a centralized platform where
 
 Passengers can search for journeys, select available schedules, reserve seats, and initiate M-Pesa payments through the platform.
 
-## ✨ Key Features
+##  Key Features
 
-### 👤 Passenger Features
+###  Passenger Features
 - User registration and authentication.
 - Search for journeys by origin and destination.
 - View available transport operators.
@@ -29,7 +29,7 @@ Passengers can search for journeys, select available schedules, reserve seats, a
 - Monitor payment status.
 - Access booking information and verified tickets.
 
-### 🚌 Transport Information
+### Transport Information
 - Integrated transport operator information.
 - Operator profiles and logos.
 - Route information.
@@ -37,7 +37,7 @@ Passengers can search for journeys, select available schedules, reserve seats, a
 - Fare information.
 - Centralized journey search.
 
-### 🔐 Administrator Features
+### Administrator Features
 - Secure administrator authentication.
 - Dashboard overview and statistics.
 - Manage transport operators.
@@ -49,7 +49,7 @@ Passengers can search for journeys, select available schedules, reserve seats, a
 - Monitor Safaricom payment verification.
 - Update booking statuses.
 
-### 💳 M-Pesa Integration
+### M-Pesa Integration
 Trans-Connect integrates Safaricom's Daraja API to support M-Pesa STK Push payments.
 
 The payment process includes:
@@ -65,7 +65,7 @@ The payment process includes:
 
 ---
 
-## 🛠️ Technologies Used
+## Technologies Used
 
 | Technology | Purpose |
 |---|---|
@@ -81,34 +81,6 @@ The payment process includes:
 | Git & GitHub | Version control |
 
 ---
-
-## 🏗️ System Architecture
-
-Trans-Connect follows a client-server architecture.
-
-```text
-          PASSENGER / ADMIN
-                  |
-                  v
-           REACT FRONTEND
-                  |
-                  v
-          DJANGO REST API
-                  |
-          +-------+-------+
-          |               |
-          v               v
-      POSTGRESQL      SAFARICOM
-       DATABASE       DARAJA API
-          |               |
-          v               v
-   Transport Data     M-Pesa Payments
-   Bookings
-   Schedules
-   Fares
-   Operators
-```
-
 ### Backend Modules
 - Accounts
 - Operators
@@ -121,40 +93,7 @@ Trans-Connect follows a client-server architecture.
 
 ---
 
-## 📂 Project Structure
-
-```text
-Trans-Connect/
-│
-├── accounts/
-├── bookings/
-├── fares/
-├── operators/
-├── payments/
-├── routes/
-├── schedules/
-├── search_engine/
-│
-├── transconnect_backend/
-│   ├── settings.py
-│   ├── urls.py
-│   └── ...
-│
-├── transconnect_frontend/
-│   ├── public/
-│   ├── src/
-│   ├── package.json
-│   └── ...
-│
-├── manage.py
-├── requirements.txt
-├── .env
-└── README.md
-```
-
----
-
-## ⚙️ Installation and Setup
+## Installation and Setup
 
 ### Prerequisites
 
@@ -275,7 +214,7 @@ http://localhost:3000/
 
 ---
 
-## 🔑 API Modules
+## API Modules
 
 | Endpoint | Description |
 |---|---|
@@ -290,7 +229,7 @@ http://localhost:3000/
 
 ---
 
-## 🔒 Security Considerations
+## Security Considerations
 
 - JWT-based authentication.
 - Role-based administrator permissions.
@@ -302,7 +241,7 @@ http://localhost:3000/
 
 ---
 
-## 🚀 Future Improvements
+## Future Improvements
 
 Potential future enhancements include:
 
@@ -315,11 +254,11 @@ Potential future enhancements include:
 
 ---
 
-## 🎓 Project Information
+## Project Information
 
 **Project Name:** Trans-Connect
 
-**Project Title:** TRANS-CONNECT: AN INTEGRATED TRANSPORT INFORMATION AND BOOKING SYSTEM IN KENYA
+**Project Title:** TRANS-CONNECT: AN INTEGRATED TRANSPORT INFORMATION AND BOOKING SYSTEM
 
 **Project Type:** Academic Software Development Project
 
@@ -327,12 +266,12 @@ Potential future enhancements include:
 
 ---
 
-## 👨‍💻 Developer
+## Developer
 
-Developed as a Computer Science project focused on improving access to integrated transport information and digital booking services in Kenya.
+Developed as a Computer Science project focused on improving access to integrated transport information and digital booking services.
 
 ---
 
-## 📄 License
+## License
 
 This project is currently developed for academic and demonstration purposes. Licensing and production deployment arrangements can be defined separately.
