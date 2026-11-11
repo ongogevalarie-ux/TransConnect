@@ -107,7 +107,7 @@ Ensure the following are installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/Trans-Connect.git
+git clone https://github.com/ongogevalarie-ux/Trans-Connect.git
 ```
 
 Navigate into the project:
